@@ -1,0 +1,54 @@
+/* Canvas LMS Offline Replica Stylesheet */
+:root {
+  --canvas-nav-bg: #2D3B45;
+  --canvas-nav-hover: #1E282F;
+  --canvas-active-accent: #005587;
+  --canvas-blue: #005587;
+  --canvas-blue-hover: #003B5C;
+  --canvas-accent: var(--canvas-active-accent, #005587);
+  --canvas-accent-hover: color-mix(in srgb, var(--canvas-accent) 80%, black);
+  --border-color: #E2E8F0;
+  --bg-primary: #F8FAFC;
+  --bg-secondary: #F1F5F9;
+  --bg-main: #F5F5F7;
+  --bg-card: #FFFFFF;
+  --border-light: #E0E0E0;
+  --border-subtle: #ECECEC;
+  --text-main: #2D3B45;
+  --text-muted: #6B7280;
+  --text-light: #9CA3AF;
+  --status-green: #059669;
+  --status-green-bg: #ECFDF5;
+  --status-amber: #D97706;
+  --status-amber-bg: #FFFBEB;
+  --status-purple: #7C3AED;
+  --status-purple-bg: #F5F3FF;
+  --sidebar-width: 220px;
+  --global-nav-width: 78px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  line-height: 1.5;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* [Codex] Public locked shell contains no course data. */
+.local-session-required { max-width: 640px; margin: 12vh auto; padding: 32px; color: var(--text-main); }
+.local-session-required p { line-height: 1.6; }

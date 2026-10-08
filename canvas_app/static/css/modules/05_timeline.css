@@ -1,0 +1,125 @@
+/* Timeline View */
+.timeline-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.timeline-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.filter-chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #F3F4F6;
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.filter-chip.active {
+  background: var(--canvas-blue);
+  color: #FFFFFF;
+  border-color: var(--canvas-blue);
+}
+
+.timeline-stream {
+  position: relative;
+  padding-left: 36px;
+}
+
+.timeline-stream::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: #E5E7EB;
+}
+
+.timeline-milestone {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.timeline-node {
+  position: absolute;
+  left: -30px;
+  top: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 3px solid var(--canvas-blue);
+  box-shadow: 0 0 0 3px #FFFFFF;
+}
+
+.timeline-node.milestone-exam {
+  border-color: var(--canvas-active-accent);
+}
+
+.timeline-node.milestone-submitted {
+  border-color: var(--status-green);
+}
+
+.timeline-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 14px 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.timeline-date-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 6px;
+}
+
+.timeline-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .timeline-filters {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .timeline-stream {
+    padding-left: 28px;
+  }
+  .timeline-stream::before {
+    left: 8px;
+  }
+  .timeline-node {
+    left: -26px;
+    width: 14px;
+    height: 14px;
+  }
+  .timeline-card {
+    padding: 10px 12px;
+  }
+  .timeline-title {
+    font-size: 13.5px;
+  }
+}

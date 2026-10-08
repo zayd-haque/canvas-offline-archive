@@ -1,0 +1,131 @@
+/* Folder View (Organized Physical Folders) */
+.folder-view-container {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.folder-stats-banner {
+  background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
+  color: #FFFFFF;
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.folder-category-block {
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.folder-category-header {
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.folder-category-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.folder-file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.file-tile {
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #FFFFFF;
+  transition: all 0.15s ease;
+}
+
+.file-tile:hover {
+  border-color: var(--canvas-blue);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.file-tile-top {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.file-tile-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--canvas-blue);
+  word-break: break-word;
+  cursor: pointer;
+}
+
+.file-tile-name:hover {
+  text-decoration: underline;
+}
+
+.file-tile-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #F1F5F9;
+  padding-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.file-tile-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-mini {
+  border: 1px solid var(--border-light);
+  background: #F8FAFC;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #374151;
+}
+
+.btn-mini:hover {
+  background: #E2E8F0;
+}
+
+@media (max-width: 640px) {
+  .folder-stats-banner {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+  .folder-file-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+}

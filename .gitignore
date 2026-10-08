@@ -1,0 +1,20 @@
+# [Codex] User data and generated files never enter this repository.
+.venv/
+__pycache__/
+*.py[cod]
+Canvas Module Downloader/config.json
+config.json
+.env
+.env.*
+*.env
+.session_cookies.json
+.canvas_browser_profile/
+browser_profile/
+.canvas_search_cache/
+canvas_previews/
+*.db
+*.db-wal
+*.db-shm
+canvas_course.json
+dist/
+.DS_Store

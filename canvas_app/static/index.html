@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="/static/js/auth.js?v=71"></script>
+  <title>Canvas Course Offline Archive</title>
+  <link rel="stylesheet" href="/static/css/canvas.css?v=61ca53b5b374">
+
+</head>
+<body>
+  <div id="app">
+    <!-- Top-level Popover Backdrop Overlay -->
+    <div class="index-popover-backdrop hidden" id="index-popover-backdrop"></div>
+    <!-- 1. Canvas Global Left Navigation Bar -->
+    <nav class="global-nav">
+      <div class="global-nav-logo" id="global-logo-btn" title="Courses Dashboard" style="cursor: pointer;">
+        <div class="logo-icon" id="global-logo">
+          <!-- Canvas Icon -->
+        </div>
+      </div>
+      <div class="global-nav-links">
+        <div class="global-nav-item active" data-view="dashboard" id="nav-btn-dashboard" title="Courses Dashboard">
+          <span class="nav-icon" id="icon-nav-dashboard"></span>
+          <span>Dashboard</span>
+        </div>
+        <div class="global-nav-item" data-view="canvas" id="nav-btn-canvas" title="Canvas LMS View">
+          <span class="nav-icon" id="icon-nav-canvas"></span>
+          <span>Courses</span>
+        </div>
+        <div class="global-nav-item" data-view="timeline" id="nav-btn-timeline" title="Quarter Timeline">
+          <span class="nav-icon" id="icon-nav-timeline"></span>
+          <span>Timeline</span>
+        </div>
+        <div class="global-nav-item" data-view="folders" id="nav-btn-folders" title="Desktop Folders">
+          <span class="nav-icon" id="icon-nav-folders"></span>
+          <span>Folders</span>
+        </div>
+        <div class="global-nav-item" data-view="launcher" id="nav-btn-launcher" title="Add Course">
+          <span class="nav-icon" id="icon-nav-launcher"></span>
+          <span>Add Course</span>
+        </div>
+        <div class="global-nav-item" data-view="rescan" id="nav-btn-rescan" title="Rescan & Maintain Course">
+          <span class="nav-icon" id="icon-nav-rescan"></span>
+          <span>Rescan</span>
+        </div>
+      </div>
+
+      <div class="global-nav-bottom">
+        <button class="global-nav-item onboarding-nav-button" id="nav-btn-onboarding" type="button" title="Open setup guide">
+          <span class="nav-icon" aria-hidden="true">?</span>
+          <span>Setup Guide</span>
+        </button>
+        <div class="global-nav-item" id="nav-btn-settings" title="Settings & Preferences">
+          <span class="nav-icon" id="icon-nav-settings"></span>
+          <span>Settings</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 2. Course Container -->
+    <main class="course-container">
+      <!-- Top Course Header -->
+      <header class="course-header">
+        <div class="breadcrumb-area">
+          <div class="course-selector-wrapper" id="course-selector-wrapper" style="display: none;">
+            <select id="course-selector" aria-label="Select Course">
+              <option value="">Loading courses...</option>
+            </select>
+          </div>
+          <span class="breadcrumb-sep" id="breadcrumb-sep" style="display: none;">›</span>
+          <span class="breadcrumb-curr" id="current-page-label">Dashboard</span>
+        </div>
+
+        <!-- Global Header Search Bar -->
+        <div class="header-search-bar" id="header-search-bar">
+          <span class="header-search-icon" id="icon-header-search"></span>
+          <input
+            type="text"
+            id="global-search-input"
+            class="header-search-input"
+            placeholder="Search files, topics, keywords... (⌘K)"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button class="search-clear-btn hidden" id="search-clear-btn" title="Clear search" aria-label="Clear search">×</button>
+          <kbd class="search-kbd-badge">⌘K</kbd>
+
+          <!-- Live Instant Search Dropdown (appears as you type) -->
+          <div class="search-dropdown-menu hidden" id="header-search-dropdown" role="listbox" aria-label="Search suggestions"></div>
+        </div>
+
+        <div class="header-actions">
+          <div class="index-status-container hidden" id="index-status-container" style="display: none;">
+            <button class="index-progress-btn" id="index-progress-btn" aria-label="Search Index Status" title="Search Index Status (Click for details)">
+              <span class="index-status-indicator" id="index-status-indicator"></span>
+              <div class="index-progress-text-wrap">
+                <div class="index-progress-label-row">
+                  <span class="index-status-title" id="index-status-title">Search Index</span>
+                  <span class="index-status-pct" id="index-status-pct">100%</span>
+                </div>
+                <div class="index-mini-bar-track">
+                  <div class="index-mini-bar-fill" id="index-mini-bar-fill" style="width: 100%;"></div>
+                </div>
+              </div>
+            </button>
+
+            <!-- Dropdown Details Popover -->
+            <div class="index-details-popover hidden" id="index-details-popover">
+              <div class="index-popover-header">
+                <div class="index-popover-header-title">
+                  <span class="index-popover-dot" id="index-popover-dot"></span>
+                  <h4>Search & OCR Index</h4>
+                </div>
+                <div class="index-popover-header-actions">
+                  <span class="index-state-badge" id="index-state-badge">Ready</span>
+                  <button class="index-popover-close-btn" id="btn-close-index-popover" title="Close" aria-label="Close">×</button>
+                </div>
+              </div>
+              
+              <div class="index-popover-body">
+                <div class="index-detail-row">
+                  <span class="index-detail-label">Files Processed</span>
+                  <span class="index-detail-value" id="index-detail-files">-- / --</span>
+                </div>
+                <div class="index-detail-row">
+                  <span class="index-detail-label">OCR Recognition</span>
+                  <span class="index-detail-value" id="index-detail-ocr">Apple Vision</span>
+                </div>
+                <div class="index-detail-row">
+                  <span class="index-detail-label">OCR Pages Indexed</span>
+                  <span class="index-detail-value" id="index-detail-ocr-pages">--</span>
+                </div>
+                <div class="index-detail-row" id="index-detail-file-row" style="display: none;">
+                  <span class="index-detail-label">Current File</span>
+                  <span class="index-detail-value index-current-file-text" id="index-detail-current-file">--</span>
+                </div>
+              </div>
+
+              <div class="index-popover-footer">
+                <button class="btn-trigger-reindex" id="btn-trigger-reindex" title="Trigger full re-index of all course files">
+                  <span class="reindex-btn-icon">⚡</span>
+                  <span>Rebuild Search Index</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Course Content Body -->
+      <div class="course-body">
+        <!-- Canvas Course Sidebar (visible in Canvas view) -->
+        <aside class="course-sidebar" id="course-sidebar">
+          <div class="course-sidebar-nav" id="sidebar-nav-list">
+            <!-- Sidebar items dynamically rendered -->
+          </div>
+        </aside>
+
+        <!-- Main Dynamic Content Panel -->
+        <section class="course-content" id="main-content-panel">
+          <div id="view-dashboard-container"></div>
+          <div id="view-canvas-container" style="display:none;"></div>
+          <div id="view-timeline-container" style="display:none;"></div>
+          <div id="view-folders-container" style="display:none;"></div>
+          <div id="view-search-container" style="display:none;"></div>
+          <div id="view-launcher" style="display:none;"></div>
+          <div id="view-rescan" style="display:none;"></div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- 3. In-App File Preview Modal -->
+    <div id="file-preview-modal" class="preview-modal-overlay hidden">
+      <div class="preview-modal-container">
+        <div class="preview-modal-header">
+          <div class="preview-file-info">
+            <span id="preview-file-icon"></span>
+            <span class="preview-file-title" id="preview-file-name">Document.pdf</span>
+            <span class="item-badge" id="preview-file-size">-- KB</span>
+            <span class="item-badge badge-folder-context" id="preview-folder-badge" style="display: none;"></span>
+          </div>
+          <!-- File Navigation Widget in Header -->
+          <div class="preview-nav-widget" id="preview-nav-widget">
+            <button class="btn-preview-nav" id="btn-preview-prev" title="Previous File (Left Arrow)" aria-label="Previous File">‹</button>
+            <span class="preview-index-counter" id="preview-index-counter">1 / 1</span>
+            <button class="btn-preview-nav" id="btn-preview-next" title="Next File (Right Arrow)" aria-label="Next File">›</button>
+          </div>
+          <div class="preview-modal-actions">
+            <button class="btn-preview-action" id="btn-open-mac" title="Open in default application">
+              <span id="icon-mac-preview"></span>
+              Open in Preview
+            </button>
+            <button class="btn-preview-action" id="btn-reveal-finder" title="Show in Folder">
+              <span id="icon-mac-finder"></span>
+              Show in Folder
+            </button>
+            <button class="btn-preview-action" id="btn-toggle-fullscreen" title="Toggle Fullscreen">
+              <span id="icon-fullscreen"></span>
+              Fullscreen
+            </button>
+            <a class="btn-preview-action" id="btn-open-tab" target="_blank" title="Open in new browser tab">
+              <span id="icon-open-tab"></span>
+              New Tab
+            </a>
+            <button class="btn-preview-close" id="btn-close-modal" title="Close preview">
+              <span id="icon-close-modal"></span>
+            </button>
+          </div>
+        </div>
+        <div class="preview-modal-body">
+          <button class="floating-preview-nav floating-prev" id="floating-preview-prev" title="Previous File (Left Arrow)" aria-label="Previous File">
+            <span class="floating-chevron">‹</span>
+          </button>
+          <button class="floating-preview-nav floating-next" id="floating-preview-next" title="Next File (Right Arrow)" aria-label="Next File">
+            <span class="floating-chevron">›</span>
+          </button>
+          <iframe id="preview-iframe" src="about:blank"></iframe>
+          <div id="preview-custom-content" class="preview-custom-content" style="display: none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Settings Preferences Modal -->
+    <div id="settings-modal" class="settings-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-heading">
+      <div class="settings-modal-container">
+        <div class="settings-modal-header">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span id="settings-header-icon"></span>
+            <h2 id="settings-heading" style="font-size:18px; font-weight:700;">Preferences & Settings</h2>
+          </div>
+          <button class="btn-preview-close" id="btn-close-settings" title="Close">
+            <span id="icon-close-settings"></span>
+          </button>
+        </div>
+        <nav class="settings-tabs" aria-label="Settings sections">
+          <button type="button" class="active" data-settings-section="general" aria-pressed="true">Appearance & Viewer</button>
+          <button type="button" data-settings-section="ingestion" aria-pressed="false">AI & Course Setup</button>
+          <button type="button" data-settings-section="directories" aria-pressed="false">Course Directories</button>
+        </nav>
+        <div class="settings-modal-body">
+        <div data-settings-panel="general" class="settings-panel">
+          <!-- Section 1: Default Action -->
+          <div class="settings-section">
+            <h3 class="settings-title">Default File Click Action</h3>
+            <div class="settings-radio-group">
+              <label class="settings-radio-card" id="card-action-browser">
+                <input type="radio" name="defaultAction" value="browser" id="opt-action-browser" checked>
+                <div class="radio-content">
+                  <div class="radio-title">In-Browser Web Viewer (Default)</div>
+                  <div class="radio-subtitle">Embedded viewer with annotations, search, and zoom.</div>
+                </div>
+              </label>
+              <label class="settings-radio-card" id="card-action-preview">
+                <input type="radio" name="defaultAction" value="preview" id="opt-action-preview">
+                <div class="radio-content">
+                  <div class="radio-title">Native App (Default File Association)</div>
+                  <div class="radio-subtitle">Directly open files in native desktop applications.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Section 2: Theme / Appearance -->
+          <div class="settings-section">
+            <h3 class="settings-title">Appearance & Theme</h3>
+            <div class="settings-theme-pills">
+              <button class="theme-pill-btn active" data-theme-val="light" id="theme-btn-light">
+                <span id="icon-theme-light"></span> Light Mode
+              </button>
+              <button class="theme-pill-btn" data-theme-val="dark" id="theme-btn-dark">
+                <span id="icon-theme-dark"></span> Dark Mode
+              </button>
+              <button class="theme-pill-btn" data-theme-val="system" id="theme-btn-system">
+                Auto (System)
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 3: Accent Color -->
+          <div class="settings-section">
+            <h3 class="settings-title">Theme Accent Color</h3>
+            <div class="settings-colors-grid">
+              <button class="color-swatch-btn active" data-accent="#005587" style="background:#005587;" title="UCLA Blue"></button>
+              <button class="color-swatch-btn" data-accent="#C73B3B" style="background:#C73B3B;" title="Canvas Crimson"></button>
+              <button class="color-swatch-btn" data-accent="#059669" style="background:#059669;" title="Emerald Green"></button>
+              <button class="color-swatch-btn" data-accent="#7C3AED" style="background:#7C3AED;" title="Royal Purple"></button>
+              <button class="color-swatch-btn" data-accent="#D97706" style="background:#D97706;" title="Warm Amber"></button>
+            </div>
+          </div>
+
+          <!-- Section 4: Auto Fullscreen -->
+          <div class="settings-section">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <h3 class="settings-title" style="margin-bottom:0;">Always Open Viewer in Fullscreen</h3>
+              </div>
+              <label class="switch-toggle">
+                <input type="checkbox" id="setting-auto-fullscreen">
+                <span class="slider-round"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Section 5: Default Startup View -->
+          <div class="settings-section">
+            <h3 class="settings-title">Default Startup Landing View</h3>
+            <div class="settings-radio-group">
+              <label class="settings-radio-card" id="card-startup-dashboard">
+                <input type="radio" name="startupView" value="dashboard" id="opt-startup-dashboard" checked>
+                <div class="radio-content">
+                  <div class="radio-title">Academic Courses Dashboard (Default)</div>
+                  <div class="radio-subtitle">Course cards, quick launchers, and statistics.</div>
+                </div>
+              </label>
+              <label class="settings-radio-card" id="card-startup-canvas">
+                <input type="radio" name="startupView" value="canvas" id="opt-startup-canvas">
+                <div class="radio-content">
+                  <div class="radio-title">Active Course Modules</div>
+                  <div class="radio-subtitle">Lectures, syllabus, and study resources.</div>
+                </div>
+              </label>
+              <label class="settings-radio-card" id="card-startup-timeline">
+                <input type="radio" name="startupView" value="timeline" id="opt-startup-timeline">
+                <div class="radio-content">
+                  <div class="radio-title">Quarter Milestones Timeline</div>
+                  <div class="radio-subtitle">Upcoming deadlines, quizzes, and exams.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Section 6: Global UI & Reader Font Scale -->
+          <div class="settings-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div>
+                <h3 class="settings-title" style="margin-bottom:0;">Global Font Scale</h3>
+              </div>
+              <span id="font-scale-display" style="font-size:12.5px; font-weight:600; color:var(--canvas-active-accent); padding:2px 8px; border-radius:6px; background:var(--bg-primary); border:1px solid var(--border-color);">100% (Default)</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:10px;">
+              <span style="font-size:12px; color:var(--text-muted); font-weight:500;">80%</span>
+              <input type="range" id="setting-font-scale" min="80" max="130" step="5" value="100" style="flex:1; accent-color:var(--canvas-active-accent); cursor:pointer;">
+              <span style="font-size:16px; color:var(--text-muted); font-weight:600;">130%</span>
+              <button type="button" id="btn-font-scale-reset" class="settings-button" style="padding:4px 10px; font-size:12px;" title="Reset to default">Reset</button>
+            </div>
+          </div>
+
+          <!-- Section 7: PDF.js Default Page Zoom -->
+          <div class="settings-section">
+            <h3 class="settings-title" style="margin-bottom:8px;">PDF Document Default Zoom</h3>
+            <select id="settings-pdf-zoom" class="settings-input" style="max-width: 280px;">
+              <option value="page-width">Fit Page Width (Default)</option>
+              <option value="page-fit">Fit Entire Page</option>
+              <option value="100">Actual Size (100%)</option>
+            </select>
+          </div>
+
+          <!-- Section 8: Slide Previews Cache -->
+          <div class="settings-section">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <h3 class="settings-title" style="margin-bottom:0;">Slide Previews Cache</h3>
+                <p id="settings-cache-status" class="settings-status" style="margin:2px 0 0 0; font-size:12px;">Checking cache usage…</p>
+              </div>
+              <button type="button" id="settings-cache-clear" class="settings-button" style="padding:4px 10px; font-size:12px;">Clear Cache</button>
+            </div>
+          </div>
+        </div>
+        <div data-settings-panel="ingestion" class="settings-panel hidden">
+          <section class="settings-section">
+            <h3 class="settings-title">Gemini API key & Rate Tier</h3>
+            <p class="settings-desc">The key is stored locally in downloader configuration, never in browser storage. Gemini requests still send selected course content to Google.</p>
+            <p id="settings-key-status" class="settings-status" role="status">Checking configuration…</p>
+            <label class="settings-label" for="settings-gemini-key">New API key</label>
+            <div class="settings-input-row">
+              <input id="settings-gemini-key" type="password" autocomplete="new-password" spellcheck="false" placeholder="Paste a replacement key" class="settings-input">
+              <button type="button" id="settings-key-reveal" class="settings-button" aria-pressed="false">Show</button>
+            </div>
+            <div class="settings-input-row" style="margin-top: 8px;">
+              <button type="button" id="settings-key-save" class="settings-button">Save key</button>
+            </div>
+            <div style="margin-top: 14px;">
+              <label class="settings-label" style="margin-bottom:6px; display:block;">Gemini Rate & Pacing Tier</label>
+              <div class="settings-radio-group" style="display:flex; gap:10px;">
+                <label class="settings-radio-card" id="card-tier-paid" style="flex:1;">
+                  <input type="radio" name="settingsGeminiTier" value="paid" id="opt-tier-paid" checked>
+                  <div class="radio-content">
+                    <div class="radio-title" style="display:flex; align-items:center; gap:6px;">
+                      <span>Paid Tier</span>
+                      <span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(16,185,129,0.15); color:#10B981; font-weight:700;">FAST (~120 RPM)</span>
+                    </div>
+                    <div class="radio-subtitle">High-speed cloud classification (0.2s pause).</div>
+                  </div>
+                </label>
+                <label class="settings-radio-card" id="card-tier-free" style="flex:1;">
+                  <input type="radio" name="settingsGeminiTier" value="free" id="opt-tier-free">
+                  <div class="radio-content">
+                    <div class="radio-title" style="display:flex; align-items:center; gap:6px;">
+                      <span>Free Tier</span>
+                      <span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(234,179,8,0.15); color:#EAB308; font-weight:700;">SAFE (10 RPM)</span>
+                    </div>
+                    <div class="radio-subtitle">Slower request pacing (6.0s pause); this does not make cloud submissions private.</div>
+                  </div>
+                </label>
+              </div>
+              <p class="gemini-privacy-warning"><strong>Gemini free-tier privacy:</strong> Google says unpaid API inputs and outputs may be used to improve its products and reviewed by humans. Do not send sensitive, confidential, or personal course material through the free tier. Choose local Keyword Rules or Ollama to keep classification content on this computer. This rate-tier setting only changes request pacing; it does not change your Google billing or data-use terms. <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Read Google's terms</a>.</p>
+            </div>
+          </section>
+          <section class="settings-section">
+            <h3 class="settings-title">Add course defaults</h3>
+            <p class="settings-desc">Default settings applied to new course downloads.</p>
+            <label class="settings-label" for="settings-ai-provider">Organization engine</label>
+            <select id="settings-ai-provider" class="settings-input">
+              <option value="gemini">Gemini — cloud API</option><option value="ollama">Ollama — on-device</option><option value="rules">Keyword rules — no AI</option>
+            </select>
+            <label class="settings-label" for="settings-ollama-model">Local Ollama model</label>
+            <select id="settings-ollama-model" class="settings-input"><option value="qwen2.5:7b">qwen2.5:7b</option><option value="qwen2.5:3b">qwen2.5:3b</option><option value="llama3.2">llama3.2</option><option value="mistral">mistral</option></select>
+            <div id="settings-ollama-card" style="margin-top: 12px; margin-bottom: 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:13px; font-weight:600; color:var(--text-main);">Local Ollama Engine Status</span>
+                <span id="settings-ollama-badge" style="font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; background: rgba(148, 163, 184, 0.2); color: var(--text-muted);">Probing...</span>
+              </div>
+              <p id="settings-ollama-status-text" class="settings-status" style="margin-top:4px; margin-bottom:0; font-size:12.5px;">Checking connection to http://localhost:11434...</p>
+            </div>
+            <label class="settings-check"><input type="checkbox" id="settings-headless"> Run the browser in the background</label>
+            <label class="settings-check"><input type="checkbox" id="settings-autoscroll"> Automatically scroll to new console messages</label>
+            <fieldset class="settings-category-fieldset"><legend>Default course categories</legend><div id="settings-categories" class="settings-category-grid"></div></fieldset>
+            <button type="button" id="settings-apply-launcher" class="settings-button">Apply to launcher</button>
+            <p id="settings-launcher-status" class="settings-status" role="status"></p>
+          </section>
+        </div>
+        <div data-settings-panel="directories" class="settings-panel hidden">
+          <!-- Section 1: Active Discovery Directories -->
+          <section class="settings-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <h3 class="settings-title" style="margin-bottom:0;">Course Discovery &amp; Scan Roots</h3>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span id="directories-course-count-badge" class="directory-tag tag-default" style="font-size:11px; padding:3px 8px;">Scanning...</span>
+                <button type="button" id="btn-rescan-all-dirs" class="btn-rescan-subtle" title="Re-scan all discovery directories and refresh catalog">
+                  <span id="icon-rescan-dirs" style="display:inline-flex; width:13px; height:13px;"></span>
+                  <span>Rescan</span>
+                </button>
+              </div>
+            </div>
+            <p class="settings-desc">These folders are scanned for existing archives. To change where new courses are saved, add a folder and choose “Set Default” next to it.</p>
+            <p id="settings-rescan-dirs-status" class="settings-status" style="margin-top:-6px; margin-bottom:10px; font-size:12px; display:none;"></p>
+            
+            <div id="settings-directories-list" class="settings-directories-list">
+              <!-- Populated dynamically by syncDirectoriesUI() -->
+            </div>
+
+            <div style="margin-top: 14px;">
+              <label class="settings-label" for="settings-new-dir-path" style="display:block; margin-bottom:6px;">Add Course Folder or Discovery Root</label>
+              <div class="settings-input-row" style="display:flex; gap:8px; align-items:center;">
+                <input id="settings-new-dir-path" type="text" spellcheck="false" placeholder="e.g. ~/Desktop, ~/Documents/Classes, or /Volumes/ExtDrive/MATH 32A" class="settings-input" style="flex:1; min-width:0;">
+                <button type="button" id="btn-browse-directory" class="btn-browse-finder" title="Choose folder via native dialog">
+                  <span id="icon-browse-finder" style="display:inline-flex; width:16px; height:16px;"></span>
+                  <span>Browse…</span>
+                </button>
+                <button type="button" id="btn-add-directory" class="btn-add-root-action">Add Folder</button>
+              </div>
+              <input type="file" id="settings-folder-picker-hidden" webkitdirectory directory style="display:none;" aria-hidden="true">
+              <p id="settings-add-dir-status" class="settings-status" style="margin-top:6px; margin-bottom:0;"></p>
+            </div>
+          </section>
+
+          <!-- Section 2: Course Disk Hierarchy Architecture -->
+          <section class="settings-section" id="section-course-hierarchy">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 class="settings-title" style="margin-bottom:0;">Course Disk Hierarchy Architecture</h3>
+              <span class="structure-card-badge" id="hierarchy-preset-badge">Standard Dual-Folder</span>
+            </div>
+
+            <!-- Preset Selector Pills -->
+            <div class="hierarchy-preset-pills">
+              <button type="button" class="hierarchy-preset-pill active" data-preset="standard" title="Dual-folder: Lectures & Resources + Work">
+                Standard Dual-Folder
+              </button>
+              <button type="button" class="hierarchy-preset-pill" data-preset="unified" title="Single root: all categorized folders directly inside course folder">
+                Unified Single-Folder
+              </button>
+              <button type="button" class="hierarchy-preset-pill" data-preset="compact" title="Compact: Lectures/ and Work/ without course prefix">
+                Compact Structure
+              </button>
+              <button type="button" class="hierarchy-preset-pill" data-preset="custom" title="Custom naming templates">
+                Custom Template
+              </button>
+            </div>
+
+            <!-- Subfolder Prefix Toggle Option -->
+            <div class="hierarchy-options-bar">
+              <label class="hierarchy-prefix-toggle-label">
+                <input type="checkbox" id="settings-hierarchy-prefix-all" style="cursor: pointer; width: 14px; height: 14px; accent-color: var(--canvas-accent); margin: 0; flex-shrink: 0;">
+                <span>Prefix all subfolders with course code <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 400;">(e.g. <code>[Course] Lecture Slides/</code>)</span></span>
+              </label>
+            </div>
+
+            <!-- Interactive Dynamic Visual Tree Studio -->
+            <div class="hierarchy-tree-preview-wrapper" style="margin-top: 4px;">
+              <div class="tree-preview-header">
+                <span class="hierarchy-studio-hint" style="font-size:11.5px; color:var(--text-muted); white-space:nowrap;">• Click to rename • Drag to reorder • ➕ to add folder</span>
+                <div class="tree-preview-course-tag" style="white-space:nowrap; flex-shrink:0;">
+                  <span>Sample Course:</span>
+                  <strong id="tree-preview-sample-course">Course Name</strong>
+                </div>
+              </div>
+              <div class="structure-tree-diagram" id="hierarchy-tree-display"></div>
+            </div>
+
+            <!-- Action Controls Row -->
+            <div class="hierarchy-actions-row">
+              <button type="button" id="btn-save-hierarchy" class="settings-button" style="padding: 6px 14px; font-size: 12.5px;">Save Hierarchy Template</button>
+              <button type="button" id="btn-reset-hierarchy" class="settings-button secondary" style="padding: 6px 14px; font-size: 12.5px;">Reset to Standard</button>
+              <span id="settings-hierarchy-status" class="settings-status" style="margin-left: 10px; font-size: 12px;"></span>
+            </div>
+          </section>
+        </div>
+        </div>
+        <div class="settings-modal-footer">
+          <span class="settings-desc">Preferences save as you change them.</span>
+          <button class="btn-primary" id="btn-save-settings">Done</button>
+        </div>
+      </div>
+    </div>
+    <!-- 5. Modern Spotlight Search Overlay / Popover Modal -->
+    <div id="search-modal" class="search-modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Course Spotlight Search">
+      <div class="search-modal-container" id="search-popover">
+        <!-- Spotlight Search Input Bar -->
+        <div class="spotlight-input-bar">
+          <span class="spotlight-input-icon" id="icon-spotlight-search"></span>
+          <input
+            type="text"
+            id="spotlight-search-input"
+            class="spotlight-search-input"
+            placeholder="Search files, topics, keywords... (⌘K)"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button class="spotlight-clear-btn hidden" id="spotlight-clear-btn" title="Clear search" aria-label="Clear search">×</button>
+          <kbd class="spotlight-esc-badge" id="btn-spotlight-close" title="Close (ESC)">ESC</kbd>
+        </div>
+
+        <!-- Quick Filter Chips -->
+        <div class="search-filter-chips" id="search-filter-chips">
+          <button class="search-filter-chip active" data-filter="all">All</button>
+          <button class="search-filter-chip" data-filter="chapters">Chapters &amp; Topics</button>
+          <button class="search-filter-chip" data-filter="slides">Slides</button>
+          <button class="search-filter-chip" data-filter="exams">Exams &amp; Assignments</button>
+        </div>
+
+        <!-- Scrollable Search Modal Content Area -->
+        <div class="search-modal-content" id="search-modal-content">
+          <!-- Loading Spinner State -->
+          <div class="search-loading-state hidden" id="search-loading-state">
+            <div class="search-spinner"></div>
+            <span>Searching course materials &amp; curriculum...</span>
+          </div>
+
+          <!-- Container for Curriculum Match Card -->
+          <div id="curriculum-match-container" class="curriculum-match-container"></div>
+
+          <!-- Container for File Match Results -->
+          <div id="search-results-list" class="search-results-list"></div>
+
+          <!-- Empty State (Initial guidance) -->
+          <div class="search-empty-state" id="search-empty-state">
+            <div class="search-empty-icon" id="search-empty-icon"></div>
+            <h3 class="search-empty-title">Course Spotlight Search</h3>
+            <p class="search-empty-desc">Search through lecture slides, syllabi, readings, exams, and chapter concepts.</p>
+            <div class="search-quick-suggestions">
+              <span class="suggestion-label">Suggested searches:</span>
+              <button class="suggestion-chip" data-query="Syllabus">Syllabus</button>
+              <button class="suggestion-chip" data-query="Chapter">Chapter</button>
+              <button class="suggestion-chip" data-query="Exam">Exam</button>
+              <button class="suggestion-chip" data-query="Slides">Slides</button>
+            </div>
+          </div>
+
+          <!-- No Results State -->
+          <div class="search-no-results hidden" id="search-no-results">
+            <div class="search-no-results-icon" id="search-no-results-icon"></div>
+            <h3 class="search-no-results-title">No matching course materials</h3>
+            <p class="search-no-results-desc" id="search-no-results-desc">No files or curriculum topics found matching your query.</p>
+          </div>
+        </div>
+
+        <!-- Spotlight Modal Footer with Keyboard Shortcuts -->
+        <div class="search-modal-footer">
+          <div class="search-footer-left">
+            <span class="search-shortcut-item"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+            <span class="search-shortcut-item"><kbd>↵</kbd> Preview</span>
+            <span class="search-shortcut-item"><kbd>esc</kbd> Close</span>
+          </div>
+          <div class="search-footer-right" id="search-footer-stats"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="onboarding-overlay" class="onboarding-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="onboarding-heading">
+    <div class="onboarding-card">
+      <div class="onboarding-kicker" id="onboarding-count"></div>
+      <h2 id="onboarding-heading"></h2>
+      <p id="onboarding-body"></p>
+      <div class="onboarding-links" id="onboarding-links"></div>
+      <div class="onboarding-actions">
+        <button type="button" id="onboarding-skip" class="onboarding-subtle">Skip guide</button>
+        <button type="button" id="onboarding-back" class="onboarding-subtle">Back</button>
+        <button type="button" id="onboarding-action" class="onboarding-subtle" hidden></button>
+        <button type="button" id="onboarding-next" class="onboarding-primary">Next</button>
+      </div>
+    </div>
+  </div>
+  <button type="button" id="onboarding-resume" class="onboarding-resume hidden">Resume setup guide</button>
+
+  <script src="/static/js/icons.js?v=73"></script>
+  <script src="/static/js/app.js?v=fcec40b98c5b"></script>
+
+</body>
+</html>

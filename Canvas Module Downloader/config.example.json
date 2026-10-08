@@ -1,0 +1,254 @@
+{
+  "llm_provider": "gemini",
+  "gemini_api_key": "",
+  "gemini_model": "gemini-flash-lite-latest",
+  "gemini_tier": "paid",
+  "ollama_url": "http://localhost:11434/api/generate",
+  "ollama_model": "auto",
+  "use_rule_engine": false,
+  "max_ram_mb": 6000,
+  "num_ctx": 4096,
+  "category_rules": [
+    {
+      "folder": "Exams And Quizzes/Practice Exams/Practice Exam Solutions",
+      "keywords": [
+        "practice exam solution",
+        "practice exam soln",
+        "sample exam solution",
+        "sample exam soln",
+        "practice midterm solution",
+        "practice midterm soln",
+        "practice final solution",
+        "sample final solution",
+        "practice exam key",
+        "practice midterm key"
+      ]
+    },
+    {
+      "folder": "Exams And Quizzes/Practice Exams",
+      "keywords": [
+        "practice exam",
+        "sample exam",
+        "previous exam",
+        "practice midterm",
+        "sample midterm",
+        "previous midterm",
+        "practice final",
+        "sample final",
+        "practice quiz",
+        "sample quiz",
+        "past exam",
+        "past midterm"
+      ]
+    },
+    {
+      "folder": "Exams And Quizzes/Current Exams/Current Exam Solutions",
+      "keywords": [
+        "midterm 1 solution",
+        "midterm 2 solution",
+        "exam solution",
+        "exam soln",
+        "midterm solution",
+        "midterm soln",
+        "final solution",
+        "quiz solution",
+        "exam key",
+        "midterm key",
+        "final key"
+      ]
+    },
+    {
+      "folder": "Exams And Quizzes/Current Exams",
+      "keywords": [
+        "midterm 1",
+        "midterm 2",
+        "exam 1",
+        "exam 2",
+        "final exam",
+        "quiz 1",
+        "quiz 2"
+      ]
+    },
+    {
+      "folder": "Discussion Slides",
+      "keywords": [
+        "discussion slide",
+        "discussion presentation",
+        "discussion slides",
+        "disc slide",
+        "recitation slide",
+        "discussion deck",
+        "discussion lecture"
+      ]
+    },
+    {
+      "folder": "Discussion Worksheets/Discussion Solutions",
+      "keywords": [
+        "discussion solution",
+        "discussion key",
+        "discussion soln",
+        "discussion sol",
+        "worksheet solution",
+        "worksheet soln",
+        "worksheet sol",
+        "worksheet key",
+        "disc sol",
+        "disc soln",
+        "disc key",
+        "recitation solution",
+        "recitation key"
+      ]
+    },
+    {
+      "folder": "Discussion Worksheets",
+      "keywords": [
+        "discussion",
+        "worksheet",
+        "discussion section",
+        "recitation",
+        "disc"
+      ]
+    },
+    {
+      "folder": "Homework Solutions",
+      "keywords": [
+        "homework solution",
+        "hw solution",
+        "hw sol",
+        "homework sol",
+        "assignment sol",
+        "pset sol",
+        "solution",
+        "soln",
+        "answer key"
+      ]
+    },
+    {
+      "folder": "Homework Assignments",
+      "keywords": [
+        "homework",
+        "hw",
+        "assignment",
+        "problem set",
+        "pset"
+      ]
+    },
+    {
+      "folder": "Lecture Slides",
+      "keywords": [
+        "lecture",
+        "slide",
+        "presentation",
+        "ch ",
+        "chapter",
+        "week",
+        "notes",
+        "reading"
+      ]
+    },
+    {
+      "folder": "Syllabus And Admin",
+      "keywords": [
+        "syllabus",
+        "schedule",
+        "policy",
+        "rubric",
+        "info",
+        "overview",
+        "announcement"
+      ]
+    }
+  ],
+  "search_dirs": [
+    "~/Desktop"
+  ],
+  "default_course_dir": "~/Desktop",
+  "disk_hierarchy": {
+    "preset": "unified",
+    "lectures_folder": "{course}",
+    "enable_work_folder": false,
+    "work_folder": "{course} Work",
+    "timeline_file": "{course} Assignments_and_Milestones_Timeline.md",
+    "categorization_style": "standard",
+    "main_folders": [
+      {
+        "id": "main_unified",
+        "name": "{course}",
+        "role": "study_materials"
+      }
+    ],
+    "custom_folders": [
+      {
+        "id": "folder_slides",
+        "name": "Lecture Slides",
+        "parent": "study_materials",
+        "types": [
+          "slides",
+          "lectures"
+        ]
+      },
+      {
+        "id": "folder_solutions",
+        "name": "Homework Solutions",
+        "parent": "study_materials",
+        "types": [
+          "solutions",
+          "keys"
+        ]
+      },
+      {
+        "id": "folder_worksheets",
+        "name": "Discussion Worksheets",
+        "parent": "study_materials",
+        "types": [
+          "discussions",
+          "worksheets"
+        ]
+      },
+      {
+        "id": "folder_exams",
+        "name": "Exams & Quizzes",
+        "parent": "study_materials",
+        "types": [
+          "exams",
+          "quizzes"
+        ]
+      },
+      {
+        "id": "folder_syllabus",
+        "name": "Syllabus & Admin",
+        "parent": "study_materials",
+        "types": [
+          "syllabus",
+          "admin"
+        ]
+      },
+      {
+        "id": "folder_other",
+        "name": "Other Materials",
+        "parent": "study_materials",
+        "types": [
+          "other",
+          "reference"
+        ]
+      },
+      {
+        "id": "folder_assignments",
+        "name": "Assignments",
+        "parent": "study_materials",
+        "types": [
+          "assignments",
+          "homework"
+        ]
+      },
+      {
+        "id": "folder_quizzes",
+        "name": "Quizzes",
+        "parent": "study_materials",
+        "types": [
+          "student_quizzes"
+        ]
+      }
+    ]
+  }
+}

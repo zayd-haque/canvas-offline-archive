@@ -1,0 +1,30 @@
+/* [Codex] First-run guide */
+.onboarding-nav-button { width: 100%; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.onboarding-nav-button .nav-icon { font-size: 20px; font-weight: 700; }
+.onboarding-overlay {
+  position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center;
+  padding: 24px; background: rgba(0, 0, 0, .72);
+}
+.onboarding-overlay.hidden, .onboarding-resume.hidden { display: none; }
+.onboarding-card {
+  width: min(620px, 100%); max-height: min(85vh, 750px); overflow: auto;
+  padding: 30px; border: 1px solid var(--border-color); border-radius: 18px;
+  background: var(--bg-card); color: var(--text-main); box-shadow: 0 24px 80px rgba(0, 0, 0, .4);
+}
+.onboarding-kicker { color: var(--canvas-accent); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.onboarding-card h2 { margin: 10px 0 14px; font-size: 25px; line-height: 1.2; }
+.onboarding-card p { margin: 0; color: var(--text-muted); font-size: 15px; line-height: 1.65; }
+.onboarding-links { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px; }
+.onboarding-links a { color: var(--canvas-accent); font-size: 14px; text-decoration: underline; }
+.onboarding-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 30px; }
+.onboarding-actions button, .onboarding-resume { border-radius: 8px; padding: 9px 13px; font: inherit; cursor: pointer; }
+.onboarding-actions button[hidden] { display: none; }
+.onboarding-subtle { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); }
+.onboarding-subtle:disabled { opacity: .4; cursor: default; }
+.onboarding-primary, .onboarding-resume { border: 1px solid var(--canvas-accent); background: var(--canvas-accent); color: #fff; }
+.onboarding-resume { position: fixed; right: 20px; bottom: 20px; z-index: 10001; box-shadow: 0 8px 28px rgba(0, 0, 0, .3); }
+@media (max-width: 600px) {
+  .onboarding-card { padding: 22px; }
+  .onboarding-actions { justify-content: stretch; }
+  .onboarding-actions button { flex: 1 1 auto; }
+}
