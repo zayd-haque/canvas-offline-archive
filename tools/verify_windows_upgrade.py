@@ -17,7 +17,7 @@ def get(url):
     with urllib.request.urlopen(request, timeout=60) as response: return response.read()
 
 with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
-    root = Path(temporary)
+    root = Path(temporary).resolve()
     metadata = json.loads(get(REPO + '/tags/v1.0.7'))
     asset = next(a for a in metadata['assets'] if a['name']=='canvas-offline-archive-windows.zip')
     archive = root / 'old.zip'; archive.write_bytes(get(asset['browser_download_url']))
