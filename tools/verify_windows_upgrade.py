@@ -21,6 +21,7 @@ def get(url):
 
 with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
     root = Path(temporary).resolve()
+    target_tag = json.loads(get(REPO + '/latest'))['tag_name']
     metadata = json.loads(get(REPO + '/tags/v1.0.7'))
     asset = next(a for a in metadata['assets'] if a['name']=='canvas-offline-archive-windows.zip')
     archive = root / 'old.zip'; archive.write_bytes(get(asset['browser_download_url']))
@@ -70,11 +71,11 @@ with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
     launch_and_check('BEFORE_UPGRADE')
     env.pop('CANVAS_OFFLINE_NO_UPDATE')
     subprocess.run([os.environ['COMSPEC'],'/d','/c',str(cmd),'--setup-only'],cwd=app,env=env,check=True,timeout=600)
-    assert json.loads((app/'release_info.json').read_text())['tag']=='v1.0.8'
+    assert json.loads((app/'release_info.json').read_text())['tag']==target_tag
     for path,expected in sentinels.items(): assert path.read_bytes()==expected,str(path)
     assert marker.read_text()=='keep'
     assert (app/'canvas_app'/'ocr_windows.py').is_file()
     subprocess.run([str(python),'-c','from winrt.windows.media.ocr import OcrEngine; import pypdfium2'],check=True,env=env)
     env['CANVAS_OFFLINE_NO_UPDATE']='1'
     launch_and_check('AFTER_UPGRADE')
-    print('WINDOWS_V107_TO_V108_LAUNCHER_UPGRADE_SETTINGS_COURSE_VENV_PASS')
+    print('WINDOWS_V107_TO_'+target_tag+'_LAUNCHER_UPGRADE_SETTINGS_COURSE_VENV_PASS')
