@@ -40,7 +40,7 @@ with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
     def launch_and_check(label):
         url_file = root / 'browser-url.txt'; url_file.unlink(missing_ok=True)
         harness = root / 'launch.py'
-        harness.write_text('import sys,webbrowser\nfrom pathlib import Path\nsys.path.insert(0,'+repr(str(app/'canvas_app'))+')\nwebbrowser.open=lambda url: Path('+repr(str(url_file))+').write_text(url)\nimport run,server\nprint('FIXTURE_ROOTS',server.get_effective_search_dirs(),flush=True)\nprint('FIXTURE_CATALOG',server.discover_courses(),flush=True)\nrun.main()\n')
+        harness.write_text('import sys,webbrowser\nfrom pathlib import Path\nsys.path.insert(0,'+repr(str(app/'canvas_app'))+')\nwebbrowser.open=lambda url: Path('+repr(str(url_file))+').write_text(url)\nimport run,server\nprint("FIXTURE_ROOTS",server.get_effective_search_dirs(),flush=True)\nprint("FIXTURE_CATALOG",server.discover_courses(),flush=True)\nrun.main()\n')
         log = root / (label+'.log')
         with log.open('wb') as output:
             proc = subprocess.Popen([str(python),str(harness)],cwd=app,env=env,stdout=output,stderr=subprocess.STDOUT)
