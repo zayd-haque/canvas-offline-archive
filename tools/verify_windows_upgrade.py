@@ -13,7 +13,10 @@ import zipfile
 assert sys.platform == 'win32'
 REPO = 'https://api.github.com/repos/zayd-haque/canvas-offline-archive/releases'
 def get(url):
-    request = urllib.request.Request(url, headers={'User-Agent':'Canvas-Windows-Upgrade-Verification'})
+    headers = {'User-Agent':'Canvas-Windows-Upgrade-Verification'}
+    if url.startswith('https://api.github.com/'):
+        headers['Authorization'] = 'Bearer ' + os.environ['TEST_GITHUB_TOKEN']
+    request = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(request, timeout=60) as response: return response.read()
 
 with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
@@ -32,6 +35,11 @@ with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
     config.write_text(json.dumps({'search_dirs':[str(course.parent)],'default_course_dir':str(course.parent),'ai_provider':'rules','gemini_tier':'free','disk_hierarchy':[]}),encoding='utf-8')
     sentinels = {config:config.read_bytes(),course/'notes.txt':(course/'notes.txt').read_bytes(),course/'canvas_course.json':(course/'canvas_course.json').read_bytes()}
     env = os.environ.copy(); env.update(HOME=str(home),USERPROFILE=str(home),CANVAS_CACHE_DIR=str(root/'Cache'),PYTHONIOENCODING='utf-8',CANVAS_OFFLINE_NO_UPDATE='1')
+    # Runner API authentication avoids shared unauthenticated IP rate limits.
+    # This changes transport headers only; the published updater remains intact.
+    transport = root / 'Transport'; transport.mkdir()
+    (transport / 'sitecustomize.py').write_text("import os,urllib.request\noriginal=urllib.request.urlopen\ndef authenticated(request,*args,**kwargs):\n    if isinstance(request,urllib.request.Request) and request.full_url.startswith('https://api.github.com/'):\n        request.add_header('Authorization','Bearer '+os.environ['TEST_GITHUB_TOKEN'])\n    return original(request,*args,**kwargs)\nurllib.request.urlopen=authenticated\n")
+    env['PYTHONPATH'] = str(transport)
     cmd = app / 'Open Canvas Offline Archive Windows.cmd'
     subprocess.run([os.environ['COMSPEC'],'/d','/c',str(cmd),'--setup-only'],cwd=app,env=env,check=True,timeout=600)
     python = app / '.venv' / 'Scripts' / 'python.exe'
