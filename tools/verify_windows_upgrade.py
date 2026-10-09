@@ -29,7 +29,7 @@ with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
     (course / 'notes.txt').write_text('Private synthetic course sentinel 78231', encoding='utf-8')
     (course / 'canvas_course.json').write_text(json.dumps({'course_name':'Synthetic Course','course_url':'https://canvas.example/courses/123','file_path_map':{'notes.txt':['notes.txt']}}),encoding='utf-8')
     config = app / 'Canvas Module Downloader' / 'config.json'
-    config.write_text(json.dumps({'search_dirs':[str(course)],'default_course_dir':str(course.parent),'ai_provider':'rules','gemini_tier':'free','disk_hierarchy':[]}),encoding='utf-8')
+    config.write_text(json.dumps({'search_dirs':[str(course.parent)],'default_course_dir':str(course.parent),'ai_provider':'rules','gemini_tier':'free','disk_hierarchy':[]}),encoding='utf-8')
     sentinels = {config:config.read_bytes(),course/'notes.txt':(course/'notes.txt').read_bytes(),course/'canvas_course.json':(course/'canvas_course.json').read_bytes()}
     env = os.environ.copy(); env.update(HOME=str(home),USERPROFILE=str(home),CANVAS_CACHE_DIR=str(root/'Cache'),PYTHONIOENCODING='utf-8',CANVAS_OFFLINE_NO_UPDATE='1')
     cmd = app / 'Open Canvas Offline Archive Windows.cmd'
