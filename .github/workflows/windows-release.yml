@@ -1,7 +1,7 @@
 name: Windows release verification
 on:
   push:
-    branches: [main, 'codex/windows-release-verification']
+    branches: [main, 'codex/windows-release-verification', 'codex/windows-upgrade-verification']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -9,7 +9,7 @@ permissions:
 jobs:
   native:
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       PYTHONIOENCODING: utf-8
     steps:
@@ -21,4 +21,5 @@ jobs:
       - run: python -m compileall -q canvas_app 'Canvas Module Downloader' bootstrap_windows.py
       - run: python -m unittest discover tests -v
       - run: python tools/verify_windows_release.py
+      - run: python tools/verify_windows_upgrade.py
       - run: python tools/build_release_package.py --platform windows --tag v1.0.8 "$env:RUNNER_TEMP\canvas-offline-archive-windows.zip"
