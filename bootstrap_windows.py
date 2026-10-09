@@ -8,9 +8,10 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import venv
 from pathlib import Path
-from release_updater import maybe_update
+from release_updater import maybe_update, RecoveryError, recover_pending
 
 
 ROOT = Path(__file__).resolve().parent
@@ -29,6 +30,17 @@ def run(*args: str) -> None:
     subprocess.run(args, check=True, cwd=ROOT)
 
 
+def _write_marker(marker: Path, digest: str) -> None:
+    """[Codex] Replace the marker without following a pre-existing file link."""
+    fd, temporary = tempfile.mkstemp(prefix=".deps-", dir=marker.parent)
+    try:
+        with os.fdopen(fd, "w") as output:
+            output.write(digest)
+        os.replace(temporary, marker)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--setup-only", action="store_true")
@@ -42,6 +54,7 @@ def main() -> int:
     _reject_link(VENV, parser)
     _reject_link(config.parent, parser)
     _reject_link(config, parser)
+    recover_pending(ROOT)
     os.environ['PYTHONIOENCODING'] = 'utf-8'
     if args.reinstall and VENV.exists():
         shutil.rmtree(VENV)
@@ -55,12 +68,12 @@ def main() -> int:
     digest = hashlib.sha256(lock.read_bytes()).hexdigest()
     needs_install = not marker.exists() or marker.read_text() != digest
     try:
-        run(str(PYTHON), "-c", "import fastapi, uvicorn, pypdf, requests, playwright")
+        run(str(PYTHON), "-c", "import fastapi, uvicorn, pypdf, requests, playwright, pypdfium2; from winrt.windows.media.ocr import OcrEngine; from winrt.windows.graphics.imaging import SoftwareBitmap; from winrt.windows.storage.streams import DataWriter")
     except subprocess.CalledProcessError:
         needs_install = True
     if needs_install:
         run(str(PYTHON), "-m", "pip", "install", "--require-hashes", "-r", str(ROOT / "requirements.txt"))
-        marker.write_text(digest)
+        _write_marker(marker, digest)
     if not args.reinstall:
         try:
             print("Checking for Canvas Offline Archive updates...")
@@ -68,7 +81,10 @@ def main() -> int:
                 updated_digest = hashlib.sha256(lock.read_bytes()).hexdigest()
                 if updated_digest != digest:
                     run(str(PYTHON), "-m", "pip", "install", "--require-hashes", "-r", str(lock))
-                    marker.write_text(updated_digest)
+                    _write_marker(marker, updated_digest)
+        except (subprocess.CalledProcessError, RecoveryError):
+            # [Codex] New source must not launch with a failed dependency upgrade.
+            raise
         except Exception as exc:
             print(f"Update check skipped: {exc}. Starting the installed version.")
     try:

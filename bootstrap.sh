@@ -74,12 +74,15 @@ fi
 
 if [ -z "$PYTHON_BIN" ]; then
     echo -e "${RED}Error: Python 3.14 is required for this release.${NC}"
-    echo "Install Python 3.14, then run ./bootstrap.sh again. See INSTALL.md."
+    echo "Install Python 3.14, then run ./bootstrap.sh again. See docs/INSTALL.md."
     exit 1
 fi
 
 PY_VERSION="$("$PYTHON_BIN" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")')"
 echo -e "${GREEN}✓ Found Python ${PY_VERSION} (${PYTHON_BIN})${NC}"
+
+# [Codex] Recover interrupted source updates before reading or installing the lock.
+"$PYTHON_BIN" "${SCRIPT_DIR}/release_updater.py" --platform macos --recover-only
 
 # Step 2: Set up isolated virtual environment (.venv)
 echo -e "\n${BOLD}[2/4] Setting up isolated virtual environment (.venv)...${NC}"
@@ -101,6 +104,24 @@ else
         exit 1
     fi
 fi
+
+# [Codex] Marker publication replaces links instead of truncating their targets.
+write_dependency_marker() {
+    "$PYTHON_BIN" - "${VENV_DIR}/.deps_installed" "$1" <<'PY_MARKER'
+import os
+import pathlib
+import sys
+import tempfile
+marker = pathlib.Path(sys.argv[1])
+fd, temporary = tempfile.mkstemp(prefix=".deps-", dir=marker.parent)
+try:
+    with os.fdopen(fd, "w") as output:
+        output.write(sys.argv[2])
+    os.replace(temporary, marker)
+finally:
+    pathlib.Path(temporary).unlink(missing_ok=True)
+PY_MARKER
+}
 
 # Step 3: Install dependencies
 echo -e "\n${BOLD}[3/4] Verifying and installing dependencies...${NC}"
@@ -130,7 +151,7 @@ if [ "$NEEDS_INSTALL" = true ] || [ "$FORCE_REINSTALL" = true ]; then
         echo "Error: requirements.txt is missing from this package."
         exit 1
     fi
-    printf '%s' "$LOCK_DIGEST" > "${VENV_DIR}/.deps_installed"
+    write_dependency_marker "$LOCK_DIGEST"
     echo -e "${GREEN}✓ Python dependencies installed successfully.${NC}"
 else
     echo -e "${GREEN}✓ All dependencies already satisfied.${NC}"
@@ -148,7 +169,7 @@ PY
 )"
     if [ "$UPDATED_LOCK_DIGEST" != "$LOCK_DIGEST" ]; then
         "$VENV_PYTHON" -m pip install --require-hashes -r "${SCRIPT_DIR}/requirements.txt"
-        printf '%s' "$UPDATED_LOCK_DIGEST" > "${VENV_DIR}/.deps_installed"
+        write_dependency_marker "$UPDATED_LOCK_DIGEST"
     fi
 fi
 

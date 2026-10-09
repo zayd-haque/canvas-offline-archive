@@ -284,10 +284,13 @@ def download_single_submission(page, assign_item: dict, work_dir: str) -> list:
                 out_filename = f"{assign_title}_Submission.pdf"
                 out_path = unique_destination(contained_path(work_dir, sanitize_filename(out_filename)))
                 try:
-                    resp = page.request.get(pdf_src)
-                    if resp.status == 200:
-                        with open(out_path, "wb") as f:
-                            f.write(resp.body())
+                    # [Codex] Stream with the same HTTPS, cookie-scope, size and
+                    # atomic publication rules as regular course downloads.
+                    from downloader import create_session, download_file
+                    with create_session(cookies=page.context.cookies()) as session:
+                        downloaded_name = download_file(session, pdf_src, out_filename, work_dir)
+                    if downloaded_name:
+                        out_path = contained_path(work_dir, downloaded_name)
                         print(f"      📥 Captured viewer submission PDF: '{out_filename}'")
                         downloaded_files.append(out_path)
                 except Exception as e:

@@ -8,9 +8,12 @@ part of the update set. Network failure leaves the installed app usable.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import stat
 import hashlib
 import json
 import os
+import re
 import shutil
 import socket
 import ssl
@@ -37,6 +40,7 @@ ROOT_FILES = {
     "bootstrap.sh", "bootstrap_windows.py", "release_updater.py",
     "Open Canvas Offline Archive.command", "Open Canvas Offline Archive Windows.cmd",
     "requirements.txt", "INSTALL.md", "WINDOWS_INSTALL.md", "SECURITY.md",
+    "docs/INSTALL.md", "docs/WINDOWS_INSTALL.md", "docs/SECURITY.md",
     "release_info.json",
 }
 
@@ -65,7 +69,12 @@ def _request_json(url: str) -> dict:
 
 
 def _asset_path(name: str) -> str:
+    if "\\" in name or ":" in name or "\x00" in name:
+        raise ValueError("Update archive contains an unsafe Windows path")
     path = PurePosixPath(name)
+    for part in path.parts:
+        if part.endswith((".", " ")) or re.fullmatch(r"(?i)(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?", part):
+            raise ValueError("Update archive contains an unsafe Windows component")
     if not name.startswith(PACKAGE_ROOT + "/") or path.is_absolute() or ".." in path.parts:
         raise ValueError("Update archive contains an unsafe path")
     relative = str(PurePosixPath(*path.parts[1:]))
@@ -109,19 +118,91 @@ def _download(url: str, destination: Path, expected_digest: str) -> None:
         raise ValueError("Release SHA-256 does not match GitHub's published digest")
 
 
+def _publish(root: Path, relative: str, source: Path) -> None:
+    """[Codex] Publish through an exclusively created sibling; never truncate links."""
+    target = _safe_target(root, relative)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=".canvas-update-", dir=target.parent)
+    replacement = Path(temporary)
+    try:
+        with os.fdopen(fd, "wb") as output, source.open("rb") as input_file:
+            shutil.copyfileobj(input_file, output)
+            output.flush()
+            os.fsync(output.fileno())
+        shutil.copymode(source, replacement)
+        _safe_target(root, relative)
+        os.replace(replacement, target)
+    finally:
+        replacement.unlink(missing_ok=True)
+
+
+@contextlib.contextmanager
+def _update_lock(root: Path):
+    """[Codex] Kernel-held lock; a stopped process cannot leave a stale lock."""
+    flags = os.O_RDWR | os.O_CREAT
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        lock = _safe_target(root, ".canvas-update.lock")
+        fd = os.open(lock, flags, 0o600)
+    except (OSError, ValueError) as exc:
+        raise RecoveryError("Cannot safely lock updater; app launch blocked: " + str(exc)) from exc
+    acquired = False
+    try:
+        info = os.fstat(fd)
+        current = lock.lstat()
+        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                or (info.st_dev, info.st_ino) != (current.st_dev, current.st_ino)
+                or lock.is_symlink() or getattr(lock, "is_junction", lambda: False)()):
+            raise RecoveryError("Refusing unsafe updater lock file")
+        if os.name == "nt":
+            import msvcrt
+            if info.st_size == 0:
+                os.write(fd, b"0")
+            os.lseek(fd, 0, os.SEEK_SET)
+            try:
+                msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+            except OSError as exc:
+                raise RecoveryError("Another launcher is updating or recovering the app; retry when it finishes") from exc
+        else:
+            import fcntl
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError as exc:
+                raise RecoveryError("Another launcher is updating or recovering the app; retry when it finishes") from exc
+        acquired = True
+        yield
+    finally:
+        if acquired:
+            if os.name == "nt":
+                os.lseek(fd, 0, os.SEEK_SET)
+                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+
 def _install_archive(root: Path, archive: Path, platform: str, tag: str) -> None:
+    with _update_lock(root):
+        _recover_pending_unlocked(root)
+        _install_archive_unlocked(root, archive, platform, tag)
+
+
+def _install_archive_unlocked(root: Path, archive: Path, platform: str, tag: str) -> None:
     with zipfile.ZipFile(archive) as zipped:
         entries = {}
+        folded = set()
         total = 0
         for item in zipped.infolist():
             if item.is_dir():
                 continue
             relative = _asset_path(item.filename)
-            if relative in entries or item.external_attr >> 16 & 0o170000 == 0o120000:
+            if relative.casefold() in folded or item.external_attr >> 16 & 0o170000 == 0o120000:
                 raise ValueError("Update archive contains duplicate or linked files")
             total += item.file_size
             if total > MAX_EXTRACTED:
                 raise ValueError("Release archive exceeds extracted size limit")
+            folded.add(relative.casefold())
             entries[relative] = item
         if not {"requirements.txt", "release_updater.py", "canvas_app/run.py", "canvas_app/static/index.html"}.issubset(entries):
             raise ValueError("Release archive is incomplete")
@@ -151,36 +232,105 @@ def _install_archive(root: Path, archive: Path, platform: str, tag: str) -> None
                     backup = backups / relative
                     backup.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(target, backup)
-            applied = []
+            # [Codex] Persist every original before the first application write.
+            recovery = Path(tempfile.mkdtemp(prefix=".canvas-recovery-", dir=root))
+            originals = recovery / "originals"
+            originals.mkdir()
+            present = []
+            for relative, target in targets.items():
+                if target.exists():
+                    saved = originals / relative
+                    saved.parent.mkdir(parents=True, exist_ok=True)
+                    with target.open("rb") as source, saved.open("xb") as output:
+                        shutil.copyfileobj(source, output)
+                        output.flush()
+                        os.fsync(output.fileno())
+                    shutil.copymode(target, saved)
+                    present.append(relative)
+            manifest = {"files": list(targets), "present": present}
+            marker = recovery / "pending.json"
+            with marker.open("x", encoding="utf-8") as output:
+                json.dump(manifest, output)
+                output.flush()
+                os.fsync(output.fileno())
             try:
                 for relative, target in targets.items():
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    replacement = target.with_name(target.name + ".canvas-update")
-                    shutil.copy2(payload / relative, replacement)
-                    os.replace(replacement, target)
-                    applied.append(relative)
+                    _publish(root, relative, payload / relative)
+                os.replace(marker, recovery / "completed.json")
             except Exception:
-                for relative in reversed(applied):
-                    target = targets[relative]
-                    backup = backups / relative
-                    if backup.exists():
-                        replacement = target.with_name(target.name + ".canvas-restore")
-                        shutil.copy2(backup, replacement)
-                        os.replace(replacement, target)
-                    else:
-                        target.unlink(missing_ok=True)
+                _recover_transaction(root, recovery)
                 raise
 
 
+class RecoveryError(RuntimeError):
+    """An incomplete update could not be recovered; launching is unsafe."""
+
+
+def _recover_transaction(root: Path, recovery: Path) -> None:
+    try:
+        _safe_target(root, recovery.name)
+        marker = _safe_target(root, recovery.name + "/pending.json")
+        if not marker.exists():
+            return
+        if marker.stat().st_size > 1024 * 1024:
+            raise ValueError("Recovery manifest exceeds limit")
+        manifest = json.loads(marker.read_text(encoding="utf-8"))
+        files = manifest["files"]
+        present = set(manifest["present"])
+        if not isinstance(files, list) or len(files) > 10000 or not present.issubset(files):
+            raise ValueError("Invalid recovery manifest")
+        # Preserve interrupted replacements or subsequent manual edits as well.
+        preserved = Path(tempfile.mkdtemp(prefix="interrupted-", dir=recovery))
+        for relative in reversed(files):
+            if _asset_path(PACKAGE_ROOT + "/" + relative) != relative:
+                raise ValueError("Invalid recovery path")
+            target = _safe_target(root, relative)
+            if target.exists():
+                saved = preserved / relative
+                saved.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(target, saved)
+            if relative in present:
+                original = _safe_target(root, recovery.name + "/originals/" + relative)
+                if not original.is_file():
+                    raise ValueError("Recovery original missing")
+                _publish(root, relative, original)
+            else:
+                target.unlink(missing_ok=True)
+        os.replace(marker, recovery / "recovered.json")
+        print("Recovered an interrupted update; original and interrupted files are preserved in " + recovery.name)
+    except Exception as exc:
+        raise RecoveryError("Interrupted update recovery failed; app launch blocked: " + str(exc)) from exc
+
+
+def recover_pending(root: Path) -> None:
+    """[Codex] Restore incomplete updates before deciding whether to update again."""
+    with _update_lock(root):
+        _recover_pending_unlocked(root)
+
+
+def _recover_pending_unlocked(root: Path) -> None:
+    recoveries = list(root.glob(".canvas-recovery-*"))
+    if any((recovery / "pending.json").exists() for recovery in recoveries):
+        try:
+            with socket.create_connection(("127.0.0.1", 8000), timeout=0.2):
+                raise RecoveryError("Stop the running app before recovering its interrupted update")
+        except OSError:
+            pass
+    for recovery in recoveries:
+        _recover_transaction(root, recovery)
+
+
 def maybe_update(root: Path, platform: str) -> bool:
-    if os.environ.get("CANVAS_OFFLINE_NO_UPDATE") == "1" or (root / ".git").exists():
-        return False
     try:
         with socket.create_connection(("127.0.0.1", 8000), timeout=0.2):
             print("An app is already listening on port 8000; skipping file updates until it stops.")
             return False
     except OSError:
         pass
+    recover_pending(root)
+    if os.environ.get("CANVAS_OFFLINE_NO_UPDATE") == "1" or (root / ".git").exists():
+        return False
     installed = _read_json(root / "release_info.json")
     latest = _request_json(API)
     tag = latest.get("tag_name")
@@ -211,10 +361,17 @@ def maybe_update(root: Path, platform: str) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--platform", choices=tuple(ASSET_NAMES), required=True)
+    parser.add_argument("--recover-only", action="store_true")
     args = parser.parse_args()
     print("Checking for Canvas Offline Archive updates...")
     try:
-        maybe_update(ROOT, args.platform)
+        if args.recover_only:
+            recover_pending(ROOT)
+        else:
+            maybe_update(ROOT, args.platform)
+    except RecoveryError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
     except (OSError, ValueError, KeyError, zipfile.BadZipFile, urllib.error.URLError) as exc:
         print(f"Update check skipped: {exc}. Starting the installed version.")
     return 0

@@ -19,12 +19,12 @@ import time
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
 try:
-    from .cache import ensure_private_directory
+    from .cache import ensure_private_directory, validate_cache_database
     from .archive import walk_files, safe_path, load_blueprint, signature
     from .extraction import extract, SUPPORTED
     from .ocr import capability as ocr_capability, cache_version as ocr_cache_version, retry_failed as retry_failed_ocr
 except ImportError:
-    from cache import ensure_private_directory
+    from cache import ensure_private_directory, validate_cache_database
     from archive import walk_files, safe_path, load_blueprint, signature
     from extraction import extract, SUPPORTED
     from ocr import capability as ocr_capability, cache_version as ocr_cache_version, retry_failed as retry_failed_ocr
@@ -284,6 +284,7 @@ class SearchEngine:
 
     @contextmanager
     def _get_connection(self, bounded=False):
+        validate_cache_database(self.db_path)
         conn = sqlite3.connect(str(self.db_path), timeout=5)
         conn.row_factory = sqlite3.Row
         deadline = time.monotonic() + 3

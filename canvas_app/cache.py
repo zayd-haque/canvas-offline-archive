@@ -71,12 +71,34 @@ class DerivedCache:
             self._bytes = 0
 
 
+def _canonical_cache_path(path):
+    """[Codex] Expand only macOS root-owned standard temporary aliases."""
+    import os
+    import sys
+    from pathlib import Path
+    path = Path(path)
+    if sys.platform == 'darwin' and path.is_absolute():
+        for name in ('var', 'tmp'):
+            alias = Path('/') / name
+            destination = Path('/private') / name
+            if path == alias or alias in path.parents:
+                if (alias.is_symlink() and os.lstat(alias).st_uid == 0
+                        and alias.resolve(strict=True) == destination):
+                    return destination / path.relative_to(alias)
+    return path
+
+
 def ensure_private_directory(path):
     """[Codex] Existing cache directories must also be owned and private."""
     import os
     import stat
     from pathlib import Path
-    path = Path(path)
+    path = _canonical_cache_path(path)
+    # Validate before mkdir: linked ancestors can otherwise create directories
+    # in an unrelated tree even when the operation subsequently rejects them.
+    for component in (path, *path.parents):
+        if component.is_symlink() or (hasattr(component, 'is_junction') and component.is_junction()):
+            raise PermissionError('Cache directory must not use a link or junction')
     path.mkdir(parents=True, exist_ok=True, mode=0o700)
     if os.name == 'nt':
         # Windows has no O_DIRECTORY/O_NOFOLLOW, uid, or fchmod. Keep cache
@@ -96,4 +118,17 @@ def ensure_private_directory(path):
         os.fchmod(fd, 0o700)
     finally:
         os.close(fd)
+    return path
+
+
+def validate_cache_database(path):
+    """[Codex] SQLite must not redirect its database or sidecar writes."""
+    from pathlib import Path
+    path = Path(path)
+    ensure_private_directory(path.parent)
+    for candidate in (path, *(Path(str(path) + suffix) for suffix in ('-wal', '-shm', '-journal'))):
+        if candidate.is_symlink() or (hasattr(candidate, 'is_junction') and candidate.is_junction()):
+            raise PermissionError('Cache database must not use links or junctions')
+        if candidate.exists() and not candidate.is_file():
+            raise PermissionError('Cache database paths must be regular files')
     return path

@@ -1,4 +1,4 @@
-from safety import bounded_pdf_text
+from safety import bounded_pdf_text, atomic_generated_text
 # knowledge.py
 # Dedicated Knowledge Base Builder: generates comprehensive chapter-by-chapter
 # course reference guides (course_knowledge.md) from syllabus and module details.
@@ -88,18 +88,19 @@ Provide a rich, highly detailed breakdown for EVERY chapter, module, and major t
 Do not write any introductory or conversational text. Output ONLY the Markdown document."""
 
     os.makedirs(output_dir, exist_ok=True)
+    summary = ''
     try:
         from llm_client import query_llm
         summary = query_llm(prompt, config, timeout=35)
-        if summary and len(summary) > 50:
-            with open(md_path, "w", encoding="utf-8") as f:
-                f.write(summary)
-            print("📝 Built comprehensive course_knowledge.md (Chapter & Topic Breakdown)!")
-            return
     except ProviderError:
         raise
     except Exception as e:
         print(f"⚠️ Could not generate AI course knowledge base: {e}")
+
+    if summary and len(summary) > 50:
+        atomic_generated_text(md_path, summary)
+        print("📝 Built comprehensive course_knowledge.md (Chapter & Topic Breakdown)!")
+        return
 
     # Fallback template
     default_content = f"""# {course_name} Knowledge Base
@@ -113,6 +114,5 @@ Do not write any introductory or conversational text. Output ONLY the Markdown d
 ## 📅 Exam Dates & Key Deadlines
 - See syllabus and announcement files for specific exam dates.
 """
-    with open(md_path, "w", encoding="utf-8") as f:
-        f.write(default_content)
+    atomic_generated_text(md_path, default_content)
     print("📝 Initialized baseline course_knowledge.md")

@@ -1106,6 +1106,7 @@ function handlePipelineEvent(evt) {
       files_count: Number.isSafeInteger(evt.files_count) && evt.files_count >= 0 ? evt.files_count : null
     };
     appendTerminalLog(`Pipeline execution finished successfully!`, "success");
+    loadCourseList({ preserveView: true });
     renderLauncherView();
   } else if (evt.type === "error") {
     appendTerminalLog(`Error: ${evt.message}`, "error");

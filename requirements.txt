@@ -471,3 +471,39 @@ uvicorn==0.53.0 \
     --hash=sha256:a9356f0cb89b3b8621529c5d5eebd69bfe154f4c3f68b4cf2de47e45fa855c2e \
     --hash=sha256:e8dca71ec86dce5f04e333f0d56cdedf942446e6643b9cea1af0d6d3a02cb03e
     # via -r requirements.in
+
+# [Codex] Windows OCR: local PDFium renderer and built-in Windows.Media.Ocr.
+# Hashes cover CPython 3.14 x64 and ARM64 wheels; Mac skips these markers.
+pypdfium2==5.13.0 ; sys_platform == "win32" \
+    --hash=sha256:47dcca2a8d507b5fd24f94c3c9d48fb379430f097bc20f01beff6c963ffbcedb \
+    --hash=sha256:554a0b23376460af1410e3c915906895e2dac67a086b9e6ccde0643a795d3b0d
+winrt-runtime==3.2.1 ; sys_platform == "win32" \
+    --hash=sha256:e36e587ab5fd681ee472cd9a5995743f75107a1a84d749c64f7e490bc86bc814 \
+    --hash=sha256:35d6241a2ebd5598e4788e69768b8890ee1eee401a819865767a1fbdd3e9a650
+winrt-Windows.Foundation==3.2.1 ; sys_platform == "win32" \
+    --hash=sha256:a22a7ebcec0d262e60119cff728f32962a02df60471ded8b2735a655eccc0ef5 \
+    --hash=sha256:3be7fbae829b98a6a946db4fbaf356b11db1fbcbb5d4f37e7a73ac6b25de8b87
+winrt-Windows.Foundation.Collections==3.2.1 ; sys_platform == "win32" \
+    --hash=sha256:d4cfece7e9c0ead2941e55a1da82f20d2b9c8003bb7a8853bb7f999b539f80a4 \
+    --hash=sha256:3884146fea13727510458f6a14040b7632d5d90127028b9bfd503c6c655d0c01
+winrt-Windows.Globalization==3.2.1 ; sys_platform == "win32" \
+    --hash=sha256:60761540a6acb1273ea024e98616996522f485075ae48e5954d797896c5e2fc2 \
+    --hash=sha256:9cb07af0c26f2fdb144fd2806a6c0de30b6c78f3afdf5a574375dd77de4574ff
+winrt-Windows.Graphics.Imaging==3.2.1 ; sys_platform == "win32" \
+    --hash=sha256:c9ed3f4805c205e15696993a4ee099ae36ccb4c4cbaa05415e8db1bf71d5ccc6 \
+    --hash=sha256:3b7f81a839e4c6a68cddc1ec89b02aa7ed5a8cb8e6f8e669a13a5771439a7568
+winrt-Windows.Graphics.DirectX.Direct3D11==3.2.1 ; sys_platform == "win32" \
+    --hash=sha256:bed68a6c69f39c325bed675e1be3668bd05005a671df34a603bb8973a0b7faf2 \
+    --hash=sha256:2f2b4de7f7a4fbda4d18caacf569c9c4513d79768f88f160cbed3f1917e6dbc2
+winrt-Windows.Media.Ocr==3.2.1 ; sys_platform == "win32" \
+    --hash=sha256:31a620f6704cf8a27bc38a5e4f7a7888c935aecc5443c6dfbfddca331259e2af \
+    --hash=sha256:e731cf200a4731f53c0e40fba72e0312e895f80ab4e3574dc45ef3b1e35509ef
+winrt-Windows.Storage.Streams==3.2.1 ; sys_platform == "win32" \
+    --hash=sha256:3c5bf41d725369b9986e6d64bad7079372b95c329897d684f955d7028c7f27a0 \
+    --hash=sha256:293e09825559d0929bbe5de01e1e115f7a6283d8996ab55652e5af365f032987
+winrt-Windows.Storage==3.2.1 ; sys_platform == "win32" \
+    --hash=sha256:f4f1fff7846f934f53b4cdc7089faa6d21ced9bc993215e95c4fcc716da851e7 \
+    --hash=sha256:78d6191e1daabd4b6aff31b84cc890e5483f4e168bceb0ef6d099ec32af9b835
+winrt-Windows.System==3.2.1 ; sys_platform == "win32" \
+    --hash=sha256:579f69ae1be85b81aaed238d45cacdc41e7f4c9fc86c906260c423c24136c6e9 \
+    --hash=sha256:bf69fa6b453a31c5ac41556f21b3a4d944f2b460e57aab4a58b366a411ca89b3

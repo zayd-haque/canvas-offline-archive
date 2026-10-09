@@ -737,6 +737,8 @@ def api_open_system(course_name: str, req: SystemActionRequest):
         open_path(target_path, req.action)
             
         return {"success": True, "path": str(target_path), "action": req.action}
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="File type cannot be opened directly; reveal it in the file manager")
     except (OSError, subprocess.SubprocessError):
         raise HTTPException(status_code=500, detail="Failed to open with the system")
 
@@ -1585,6 +1587,10 @@ _TEST_LAUNCHER_RUNNER = None
 
 def _broadcast_launcher_event(job: dict, event: dict):
     event = dict(event)
+    # Progress belongs to the whole job, including repeated crawler phases.
+    if event.get("type") == "step" and isinstance(event.get("pct"), (int, float)):
+        event["pct"] = max(job.get("progress_pct", 0), min(100, max(0, event["pct"])))
+        job["progress_pct"] = event["pct"]
     if isinstance(event.get('message'), str):
         event['message'] = event['message'][:8192]
     job["events"].append(event)
@@ -1984,6 +1990,9 @@ async def _run_launcher_body(job: dict, req: LauncherStartRequest):
         fallback = Path(contained_path(trusted_root, f"{course_name} Lectures & Resources"))
         lectures_dir = fallback if fallback.is_dir() else trusted_root
     bp.save(str(lectures_dir), course_root=str(trusted_root))
+    with _catalog.lock:
+        _catalog.roots = None
+        _catalog.expires = 0
 
     # An explicit new capture enrolls its destination when discovery was disabled.
     configured_dirs, _ = _read_configured_directories()
@@ -2033,11 +2042,11 @@ async def _run_launcher_body(job: dict, req: LauncherStartRequest):
         "step": 5,
         "pct": 100,
         "phase_title": "FTS5 Search & Document Index",
-        "message": f"100% offline index ready ({files_count} files organized)"
+        "message": f"Capture complete ({files_count} files organized); search indexing continues in the background"
     })
     _broadcast_launcher_event(job, {
         "type": "log",
-        "message": f"100% offline index ready ({files_count} files organized).",
+        "message": f"Capture complete ({files_count} files organized); search indexing continues in the background.",
         "level": "success"
     })
 
@@ -2047,7 +2056,7 @@ async def _run_launcher_body(job: dict, req: LauncherStartRequest):
         "type": "done",
         "success": True,
         "course_name": course_name,
-        "files_count": max(files_count, 1)
+        "files_count": files_count
     })
 
 

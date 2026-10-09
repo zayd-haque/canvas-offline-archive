@@ -8,7 +8,7 @@ import json
 import time
 import shutil
 from functools import lru_cache
-from safety import validate_hierarchy, validate_tree, resolve_course_root, contained_path, move_unique, bounded_pdf_text
+from safety import validate_hierarchy, validate_tree, resolve_course_root, contained_path, move_unique, bounded_pdf_text, atomic_generated_text
 import signal
 import logging
 
@@ -630,8 +630,7 @@ Do NOT include any conversational preamble or pleasantries. Output only the Mark
     os.makedirs(work_dir, exist_ok=True)
     report_path = os.path.join(work_dir, f"{course_name} Announcements_Assigned_Homework.md")
 
-    with open(report_path, "w", encoding="utf-8") as f:
-        f.write(hw_report.strip() + "\n")
+    atomic_generated_text(report_path, hw_report.strip() + "\n")
     print(f"   📝 Saved: '{course_name} Announcements_Assigned_Homework.md' -> '{os.path.basename(work_dir)}/'")
 
     # Merge into course_knowledge.md in Lectures & Resources
@@ -644,8 +643,7 @@ Do NOT include any conversational preamble or pleasantries. Output only the Mark
             if marker in ck_content:
                 ck_content = ck_content.split(marker)[0].strip()
             new_ck = ck_content + f"\n\n{marker}\n\n{hw_report.strip()}\n"
-            with open(md_path, "w", encoding="utf-8") as f:
-                f.write(new_ck)
+            atomic_generated_text(md_path, new_ck)
             print("   📅 Merged announcement homework into course_knowledge.md")
         except Exception:
             pass
