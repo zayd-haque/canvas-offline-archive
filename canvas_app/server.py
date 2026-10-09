@@ -1994,11 +1994,15 @@ async def _run_launcher_body(job: dict, req: LauncherStartRequest):
         _catalog.roots = None
         _catalog.expires = 0
 
-    # An explicit new capture enrolls its destination when discovery was disabled.
-    configured_dirs, _ = _read_configured_directories()
+    # Explicit capture destinations are enrolled in course discovery.
+    configured_dirs, default_dir = _read_configured_directories()
     if not configured_dirs:
         destination = _to_display_path(trusted_root.parent)
         _store_directories_settings([destination], destination)
+    elif not any(trusted_root.is_relative_to(Path(d).expanduser().resolve()) for d in configured_dirs):
+        # An explicitly selected capture outside existing roots must be visible too.
+        destination = _to_display_path(trusted_root)
+        _store_directories_settings(configured_dirs + [destination], default_dir)
 
     _broadcast_launcher_event(job, {
         "type": "log",

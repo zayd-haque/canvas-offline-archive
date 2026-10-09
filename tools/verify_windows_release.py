@@ -61,8 +61,8 @@ $f.Dispose(); $g.Dispose(); $b.Dispose()
     engine = SearchEngine('Synthetic Course', course, root / 'search-cache')
     engine.index_course(force=True)
     result = engine.search('4827')
-    assert result.get('results'), json.dumps({'result':result, 'status':engine.status()})
-    assert any(hit.get('path') == 'scan.pdf' for hit in result['results']), result
+    assert result.get('file_matches'), json.dumps({'result':result, 'status':engine.status()})
+    assert any(hit.get('path') == 'scan.pdf' for hit in result['file_matches']), result
     print('WINDOWS_NATIVE_OCR_TO_SEARCH_PASS')
 
     launcher = root / 'Launcher With Spaces'
