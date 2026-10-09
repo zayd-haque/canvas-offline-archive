@@ -45,7 +45,7 @@ To start manually, open Terminal in the unzipped folder and run:
 bash bootstrap.sh
 ```
 
-For platform-specific details, see the [Mac guide](INSTALL.md) or [Windows guide](WINDOWS_INSTALL.md). Windows verification covers native scanned-PDF OCR and search, plus VM checks of Canvas login/capture, folder selection, Explorer reveal, PDF opening, previews, and search. A complete update installation remains unverified on Windows.
+For platform-specific details, see the [Mac guide](INSTALL.md) or [Windows guide](WINDOWS_INSTALL.md). Windows verification covers native scanned-PDF OCR and search, plus VM checks of Canvas login/capture, folder selection, Explorer reveal, PDF opening, previews, and search. The full Windows upgrade from v1.0.7 was verified, including dependency installation, restart, and preservation of settings, course files, and the existing virtual environment.
 
 Use the launcher each time you start the server: it opens a fresh authenticated local browser session. Closing the last app tab stops the server after a short grace period; double-click the launcher to reopen it. If you see a login or access error after restarting, close that tab and reopen through the launcher. See [INSTALL.md](INSTALL.md) for troubleshooting and reinstall instructions.
 
