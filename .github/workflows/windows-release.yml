@@ -16,4 +16,6 @@ jobs:
           python-version: '3.14'
       - run: python -m pip install --require-hashes -r requirements.txt
       - run: python -m compileall -q canvas_app 'Canvas Module Downloader' bootstrap_windows.py
+      - run: python -m unittest discover tests -v
       - run: python tools/verify_windows_release.py
+      - run: python tools/build_release_package.py --platform windows --tag v1.0.8 "$env:RUNNER_TEMP\canvas-offline-archive-windows.zip"

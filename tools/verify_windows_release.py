@@ -63,7 +63,12 @@ $f.Dispose(); $g.Dispose(); $b.Dispose()
     result = engine.search('4827')
     assert result.get('file_matches'), json.dumps({'result':result, 'status':engine.status()})
     assert any(hit.get('path') == 'scan.pdf' for hit in result['file_matches']), result
-    print('WINDOWS_NATIVE_OCR_TO_SEARCH_PASS')
+    assert result['file_matches'][0]['page_num'] == 1, result
+    from unittest.mock import patch
+    with patch.object(ocr, '_recognize_batch', side_effect=AssertionError('OCR cache was not reused')):
+        engine.index_course(force=True)
+    assert engine.search('4827')['file_matches']
+    print('WINDOWS_NATIVE_OCR_TO_SEARCH_AND_CACHE_PASS')
 
     launcher = root / 'Launcher With Spaces'
     launcher.mkdir()
