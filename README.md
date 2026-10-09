@@ -11,7 +11,7 @@ Created and maintained by [zayd-haque](https://github.com/zayd-haque).
 - Captures selected Canvas categories, including modules, files, syllabus, assignments, announcements, discussions, quizzes, grades, pages, media, and available Gradescope content. What can be captured depends on your Canvas permissions and what the course publishes.
 - Organizes downloaded material in a directory you choose. The Add Course screen lets you review the destination, select categories, and watch capture progress. A separate Rescan screen can update an existing archive.
 - Shows saved courses through a dashboard, modules, assignments, timeline, and folder views. Supported documents can be previewed in the app or opened in the default desktop application.
-- Searches local filenames and extracted document text. Apple Vision OCR can help index scanned PDFs on macOS; Windows does not have OCR in this release. Indexing may continue after a capture ends.
+- Searches local filenames and extracted document text. Apple Vision OCR on macOS and the built-in Windows OCR engine can index scanned PDFs locally; Windows needs an installed OCR language. Indexing may continue after a capture ends.
 - Discovers existing course folders and can import a legacy folder when you explicitly choose to do so.
 
 The website and GitHub Pages are **documentation and download pages**. They do not host the running app or your courses.
@@ -20,7 +20,7 @@ The website and GitHub Pages are **documentation and download pages**. They do n
 
 The dashboard groups your saved courses and gives quick access to modules, files, timelines, and the course folder in the system file manager. Within a course, you can move between assignments, a chronological announcement stream, grades and feedback, syllabus views, and the on-disk folder tree. When the original syllabus PDF is available, the app can show it in its bundled PDF viewer; other syllabus views use the captured course data.
 
-Search starts from the header as you type. The full results view lets you narrow matches by material type and jump to a local file, preview, or folder. Search covers filenames and extracted document text, with on-device OCR available for scanned PDFs on supported Macs. Results depend on what has been captured and indexed; they are not a live search of Canvas.
+Search starts from the header as you type. The full results view lets you narrow matches by material type and jump to a local file, preview, or folder. Search covers filenames and extracted document text, with on-device OCR available for scanned PDFs on supported Macs and Windows PCs. Results depend on what has been captured and indexed; they are not a live search of Canvas.
 
 The app includes theme, accent, viewer, and directory settings. You can add a discovery root or explicitly import an older course folder. Merely viewing an archive does not start a new Canvas capture.
 
@@ -45,7 +45,7 @@ To start manually, open Terminal in the unzipped folder and run:
 bash bootstrap.sh
 ```
 
-For platform-specific details, see the [Mac guide](INSTALL.md) or [Windows guide](WINDOWS_INSTALL.md). The Windows VM smoke test covered startup, directory controls, and the update check. A full update installation and Windows OCR remain unverified or unavailable as described in the Windows guide.
+For platform-specific details, see the [Mac guide](INSTALL.md) or [Windows guide](WINDOWS_INSTALL.md). Windows verification covers native scanned-PDF OCR and search, plus VM checks of Canvas login/capture, folder selection, Explorer reveal, PDF opening, previews, and search. A complete update installation remains unverified on Windows.
 
 Use the launcher each time you start the server: it opens a fresh authenticated local browser session. Closing the last app tab stops the server after a short grace period; double-click the launcher to reopen it. If you see a login or access error after restarting, close that tab and reopen through the launcher. See [INSTALL.md](INSTALL.md) for troubleshooting and reinstall instructions.
 
@@ -63,7 +63,7 @@ The app does not automatically download a local AI model or silently switch prov
 
 | Task | Connection needed? |
 | --- | --- |
-| Browse, preview, and search **already captured** material | Usually no; Quick Look and Apple Vision OCR need local Mac components |
+| Browse, preview, and search **already captured** material | Usually no; native previews and OCR need their local platform components |
 | Capture or rescan a Canvas course or sync Gradescope | Yes, plus valid authorization |
 | Classify with Keyword Heuristics or an installed Ollama model | No cloud AI connection |
 | Classify with Gemini | Yes; eligible content is sent to Google |

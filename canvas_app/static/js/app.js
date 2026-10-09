@@ -210,7 +210,7 @@ function normalizeDocPath(p) {
 // Initialize App
 
 // --- Module: 01_navigation.js ---
-async function loadCourseList() {
+async function loadCourseList({ preserveView = false } = {}) {
   try {
     const res = await fetch("/api/courses");
     const data = await res.json();
@@ -242,6 +242,7 @@ async function loadCourseList() {
     els.courseSelector.value = defaultCourse.name;
     await selectCourse(defaultCourse.name);
 
+    if (preserveView) return;
     const startup = state.settings?.startupView || "dashboard";
     if (startup === "canvas" && defaultCourse) {
       switchView("canvas");
@@ -8331,6 +8332,7 @@ function handlePipelineEvent(evt) {
       files_count: Number.isSafeInteger(evt.files_count) && evt.files_count >= 0 ? evt.files_count : null
     };
     appendTerminalLog(`Pipeline execution finished successfully!`, "success");
+    loadCourseList({ preserveView: true });
     renderLauncherView();
   } else if (evt.type === "error") {
     appendTerminalLog(`Error: ${evt.message}`, "error");

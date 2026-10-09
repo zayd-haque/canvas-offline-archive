@@ -1,4 +1,4 @@
-"""[Codex] Apple Vision OCR adapter. Never downloads models or modifies source PDFs."""
+"""[Codex] Local macOS/Windows OCR. Never downloads models or modifies PDFs."""
 import hashlib
 import json
 import os
@@ -10,12 +10,13 @@ import sys
 import tempfile
 import threading
 import time
+from functools import lru_cache
 from pathlib import Path
 
 try:
-    from .cache import ensure_private_directory
+    from .cache import ensure_private_directory, validate_cache_database
 except ImportError:
-    from cache import ensure_private_directory
+    from cache import ensure_private_directory, validate_cache_database
 
 MAX_OCR_PAGES = 100
 OCR_TIMEOUT = 90
@@ -35,7 +36,28 @@ def _binary():
     return source, cache / f'vision-{digest}'
 
 
+@lru_cache(maxsize=1)
+def _windows_available():
+    try:
+        import pypdfium2  # noqa: F401 - confirms the local PDF renderer is installed
+        from winrt.windows.media.ocr import OcrEngine
+        from winrt.windows.graphics.imaging import SoftwareBitmap  # noqa: F401
+        from winrt.windows.storage.streams import DataWriter  # noqa: F401
+        return OcrEngine.try_create_from_user_profile_languages() is not None
+    except Exception:
+        return False
+
+
+def _engine_version():
+    return 'windows-ocr-v1' if sys.platform == 'win32' else 'vision-v2'
+
+
 def capability():
+    if sys.platform == 'win32':
+        available = _windows_available()
+        return {'engine': 'windows-ocr', 'enabled': enabled(), 'available': available,
+                'ready': available, 'last_error': None if available else 'OCR language or runtime unavailable',
+                'max_pages_per_document': MAX_OCR_PAGES}
     source, binary = _binary()
     available = sys.platform == 'darwin' and (binary.is_file() or shutil.which('swiftc') is not None)
     return {'engine': 'apple-vision', 'enabled': enabled(), 'available': available,
@@ -46,7 +68,7 @@ def capability():
 def cache_version():
     # Existing PDF entries are revisited when OCR support is enabled or installed.
     info = capability()
-    return f"vision-v2:{int(info['enabled'])}:{int(info['available'])}"
+    return f"{_engine_version()}:{int(info['enabled'])}:{int(info['available'])}"
 
 
 def _ensure_binary():
@@ -95,13 +117,17 @@ def _recognize_batch(path, page_numbers):
     selected = list(page_numbers)[:MAX_OCR_PAGES]
     if not selected:
         return {}, None
-    try:
-        binary = _ensure_binary()
-    except (OSError, subprocess.SubprocessError, RuntimeError):
-        return {}, 'ocr_build_failed'
+    if sys.platform == 'win32':
+        command = [sys.executable, str(Path(__file__).with_name('ocr_windows.py'))]
+    else:
+        try:
+            binary = _ensure_binary()
+        except (OSError, subprocess.SubprocessError, RuntimeError):
+            return {}, 'ocr_build_failed'
+        command = [str(binary)]
     warning = 'ocr_page_limit' if len(page_numbers) > MAX_OCR_PAGES else None
     try:
-        result = subprocess.run([str(binary), str(path), ','.join(map(str, selected))],
+        result = subprocess.run([*command, str(path), ','.join(map(str, selected))],
                                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                 timeout=OCR_TIMEOUT, check=False)
         output = result.stdout
@@ -143,7 +169,7 @@ class OCRPages(dict):
 def _cache_identity(path):
     path = Path(path).resolve()
     stat = path.stat()
-    version = f'{stat.st_mtime_ns}:{stat.st_ctime_ns}:{stat.st_size}:{stat.st_ino}:vision-v2'
+    version = f'{stat.st_mtime_ns}:{stat.st_ctime_ns}:{stat.st_size}:{stat.st_ino}:{_engine_version()}'
     root = Path(os.environ.get('CANVAS_CACHE_DIR', Path.home() / '.canvas_search_cache')) / 'ocr-pages'
     ensure_private_directory(root.parent)
     ensure_private_directory(root)
@@ -170,6 +196,7 @@ def recognize_pdf(path, page_numbers):
     except OSError:
         # Preserve the adapter contract for missing/unreadable inputs.
         return OCRPages(total=len(candidates), completed=0, pending=0, failed=len(candidates)), 'ocr_source_unavailable'
+    validate_cache_database(cache)
     with closing(sqlite3.connect(cache, timeout=5)) as conn:
         conn.row_factory = sqlite3.Row
         conn.execute('CREATE TABLE IF NOT EXISTS pages (version TEXT, page INTEGER PRIMARY KEY, text TEXT, done INTEGER, attempts INTEGER, retry_at REAL)')

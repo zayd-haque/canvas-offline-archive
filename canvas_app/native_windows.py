@@ -11,6 +11,11 @@ from tkinter import filedialog
 
 def open_path(path: Path, action: str) -> None:
     path = Path(path)
+    if __package__:
+        from .native_policy import validate_native_action
+    else:
+        from native_policy import validate_native_action
+    validate_native_action(path, action)
     if action == 'reveal' and path.is_file():
         subprocess.run(['explorer.exe', '/select,', str(path)], check=True, timeout=10)
     else:

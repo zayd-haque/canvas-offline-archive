@@ -2,7 +2,7 @@
 
 Backend reliability, search tuning, and resumable OCR in this release: **[Codex]**.
 
-Install the hash-locked Python 3.14 environment in [SECURITY.md](../SECURITY.md), then run `.venv/bin/python canvas_app/run.py`. The launcher binds **127.0.0.1:8000**, waits for readiness,
+Install the hash-locked Python 3.14 environment in [SECURITY.md](../docs/SECURITY.md), then run `.venv/bin/python canvas_app/run.py`. The launcher binds **127.0.0.1:8000**, waits for readiness,
 and opens the browser. Development reload is disabled for normal launches.
 Launcher-opened tabs send authenticated five-second heartbeats. Closing the last tab
 stops the server after a four-second reload grace; an unresponsive tab expires after
@@ -25,9 +25,11 @@ Viewing and searching existing archives need no network connection or external e
   or request. Large backlogs can take longer than the sweep interval.
 - `extraction.py`: PDF, PPTX, DOCX, text, Markdown, CSV, and HTML extraction.
   PDF parsing uses a disposable child with a 90-second timeout and CPU limit.
-- `ocr.py` / `ocr.swift`: on-device Apple Vision OCR for PDF pages with fewer than
-  40 alphanumeric text characters. PDFKit renders only those pages, up to a 2,400
-  pixel longest edge; Vision recognizes text without uploading documents. Existing
+- `ocr.py` / `ocr.swift` / `ocr_windows.py`: on-device OCR for PDF pages with fewer than
+  40 alphanumeric text characters. On macOS, PDFKit renders only those pages, up to a 2,400
+  pixel longest edge, and Apple Vision recognizes text. On Windows, PDFium renders
+  them up to a 2,048 pixel longest edge and the built-in Windows OCR engine recognizes
+  text using installed OCR languages. Neither path uploads documents. Existing
   text is retained unless OCR recovers more readable content. Original PDFs are
   never modified, and search hits retain the original PDF page numbers.
 - `previews.py`: one native Quick Look job at a time, private per-process cache,
@@ -151,11 +153,14 @@ creates a disposable index without modifying source courses or persistent caches
 `python3 canvas_app/verify_search.py --course '/path/to/archive' --query 'exam 1'`.
 Add `--ocr` to include native OCR; it is disabled by default in this diagnostic.
 
-OCR is enabled by default on macOS. The first scanned PDF compiles the bundled
+OCR is enabled by default on macOS and Windows. On macOS, the first scanned PDF compiles the bundled
 Swift helper locally (requires Apple Command Line Tools / `swiftc`, up to 90
 seconds); subsequent runs reuse the binary from the local search cache. There is
 no model download or additional Python OCR dependency. A missing compiler causes
-a graceful fallback, surfaced in status. Set `CANVAS_OCR=0` to disable OCR.
+a graceful fallback, surfaced in status. On Windows, the hash-locked install
+includes PDFium and WinRT bindings; Windows OCR uses the user's installed OCR
+languages and needs no separate model download. Missing OCR support is reported
+in search status. Set `CANVAS_OCR=0` to disable OCR.
 
 OCR processes at most 100 low-text pages per pass with a 90-second process
 timeout. Per-page SQLite checkpoints survive process restarts and retain successful
@@ -169,7 +174,8 @@ shares the extraction text limit. Previously indexed PDFs are automatically
 revisited when OCR support is enabled or becomes available. OCR is best for
 printed text; handwriting, formulas, image-heavy pages containing a substantial
 text layer, and unusual layouts may need future improvements. Recognition uses
-Vision's local supported languages, with automatic detection on macOS 13+.
+Vision's local supported languages, with automatic detection on macOS 13+;
+Windows uses the user's installed OCR languages.
 
 The sandbox used for development can block Vision image buffers. The native
 helper was separately verified outside that sandbox against a generated
@@ -234,7 +240,7 @@ archived document parsing and grade calculations remain server-side.
 
 Security remediation [Codex]
 ----------------------------
-See [SECURITY.md](../SECURITY.md) for privacy, upgrade, recovery and verification instructions. Passive discovery no longer writes blueprints: import legacy course folders explicitly. The launcher permits one active pipeline for the shared browser profile and returns 409/429 for conflicts; logs and subscriber queues are bounded. Credentials use the dedicated settings endpoint only, and validation errors do not echo input. Metadata rendering escapes dates, points and link identifiers; the application CSP denies inline scripts. DOCX ZIP entries are checked and read with decompressed-size budgets before parsing.
+See [SECURITY.md](../docs/SECURITY.md) for privacy, upgrade, recovery and verification instructions. Passive discovery no longer writes blueprints: import legacy course folders explicitly. The launcher permits one active pipeline for the shared browser profile and returns 409/429 for conflicts; logs and subscriber queues are bounded. Credentials use the dedicated settings endpoint only, and validation errors do not echo input. Metadata rendering escapes dates, points and link identifiers; the application CSP denies inline scripts. DOCX ZIP entries are checked and read with decompressed-size budgets before parsing.
 
 A failed or disconnected pipeline never becomes a simulated success. SSE reconnects while completion is unconfirmed; cancelling requires a confirmed backend response. Zero file counts remain zero, and missing counts remain unknown. Shared transport replaces duplicated demo behavior. Provider selection never silently falls back. New downloader session cookies remain in memory rather than course folders.
 

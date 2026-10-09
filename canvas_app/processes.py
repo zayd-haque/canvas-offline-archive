@@ -23,7 +23,17 @@ async def _terminate_group(proc):
             killer = await asyncio.create_subprocess_exec(
                 'taskkill', '/PID', str(proc.pid), '/T', '/F',
                 stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
-            await killer.wait()
+            try:
+                await asyncio.wait_for(killer.wait(), timeout=10)
+            except asyncio.TimeoutError:
+                killer.kill()
+                await killer.wait()
+            # A failed taskkill must not leave shutdown waiting forever.
+            if proc.returncode is None:
+                try:
+                    await asyncio.wait_for(asyncio.shield(proc.wait()), timeout=2)
+                except asyncio.TimeoutError:
+                    proc.kill()
         await proc.wait()
         return
     try:

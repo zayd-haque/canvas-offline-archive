@@ -9,6 +9,11 @@ from pathlib import Path
 
 def open_path(path: Path, action: str) -> None:
     path = Path(path)
+    if __package__:
+        from .native_policy import validate_native_action
+    else:
+        from native_policy import validate_native_action
+    validate_native_action(path, action)
     if sys.platform == 'win32':
         if __package__:
             from .native_windows import open_path as windows_open_path

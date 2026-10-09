@@ -5,6 +5,51 @@ from pathlib import Path
 import tempfile
 import shutil
 import re
+import stat
+
+
+def atomic_generated_text(path, content):
+    """[Codex] Preserve prior generated/user text before durable atomic replacement."""
+    path = Path(contained_path(Path(path).parent, Path(path).name))
+    previous = None
+    backup = None
+    def signature(value):
+        return None if value is None else (value.st_dev, value.st_ino, value.st_size,
+                                          value.st_mtime_ns, value.st_ctime_ns)
+    if path.exists():
+        previous = path.lstat()
+        if not stat.S_ISREG(previous.st_mode):
+            raise ValueError('Generated output must be a regular file')
+        backup_dir = Path(contained_path(path.parent, '.generated-backups'))
+        backup_dir.mkdir(mode=0o700, exist_ok=True)
+        fd, backup = tempfile.mkstemp(prefix=path.stem + '-', suffix=path.suffix, dir=backup_dir)
+        try:
+            with os.fdopen(fd, 'wb') as out:
+                source_fd = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+                with os.fdopen(source_fd, 'rb') as source:
+                    if signature(os.fstat(source.fileno())) != signature(previous):
+                        raise RuntimeError('Generated output changed concurrently; retry')
+                    shutil.copyfileobj(source, out)
+                out.flush()
+                os.fsync(out.fileno())
+        except BaseException:
+            os.unlink(backup)
+            raise
+    fd, temporary = tempfile.mkstemp(prefix='.generated-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        contained_path(path.parent, path.name)
+        current = path.lstat() if path.exists() else None
+        if signature(current) != signature(previous):
+            raise RuntimeError('Generated output changed concurrently; retry')
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+    return backup
 
 
 def validate_component(name):
@@ -141,6 +186,8 @@ def bounded_pdf_text(path, max_pages=20, max_chars=8000):
     import sys
     worker = '''
 import json, sys
+sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 try:
  import resource
  resource.setrlimit(resource.RLIMIT_CPU, (15, 15))
@@ -163,7 +210,7 @@ for index in indices:
 sys.stdout.write(text[:chars])
 '''
     try:
-        result = subprocess.run([sys.executable, '-c', worker], input=json.dumps([str(path), max(0, min(max_pages, 20)), max(0, min(max_chars, 8000))]), capture_output=True, text=True, timeout=20)
+        result = subprocess.run([sys.executable, '-c', worker], input=json.dumps([str(path), max(0, min(max_pages, 20)), max(0, min(max_chars, 8000))]), capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=20)
         return result.stdout[:max_chars] if result.returncode == 0 else ''
     except (OSError, subprocess.TimeoutExpired):
         return ''

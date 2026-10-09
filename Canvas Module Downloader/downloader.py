@@ -102,15 +102,25 @@ def download_file(session, url, title, temp_dir):
                 os.fsync(out.fileno())
             if not count or (expected and not response.headers.get("Content-Encoding") and expected != count):
                 raise ValueError("Incomplete download")
+            def digest(path):
+                h = hashlib.sha256()
+                with open(path, "rb") as handle:
+                    for block in iter(lambda: handle.read(65536), b""):
+                        h.update(block)
+                return h.digest()
+            # Canvas exposes the same attachment through multiple URLs. Reuse
+            # identical bytes of the same type while retaining distinct versions.
+            incoming_digest = digest(partial)
+            with os.scandir(temp_dir) as entries:
+                for entry in entries:
+                    if (entry.name.startswith(".") or not entry.is_file(follow_symlinks=False)
+                            or os.path.splitext(entry.name)[1].lower() != ext.lower()
+                            or entry.stat(follow_symlinks=False).st_size != count):
+                        continue
+                    existing = contained_path(temp_dir, entry.name)
+                    if digest(existing) == incoming_digest:
+                        return entry.name
             if os.path.exists(target):
-                def digest(path):
-                    h = hashlib.sha256()
-                    with open(path, "rb") as handle:
-                        for block in iter(lambda: handle.read(65536), b""):
-                            h.update(block)
-                    return h.digest()
-                if digest(target) == digest(partial):
-                    return os.path.basename(target)
                 target = unique_destination(target)
             from safety import move_unique
             published = move_unique(partial, target)
@@ -173,12 +183,16 @@ def download_all(output_dir: str, cookies=None) -> int:
 
             downloaded_name = download_file(session, url, title, temp_dir)
             if downloaded_name:
-                downloaded_count += 1
-                file_metadata[downloaded_name] = {
-                    "title": title,
-                    "page_title": page_title,
-                    "module_name": mod_name
-                }
+                if downloaded_name not in file_metadata:
+                    downloaded_count += 1
+                previous = file_metadata.get(downloaded_name, {})
+                aliases = previous.get("aliases", []) + [{
+                    "title": title, "page_title": page_title, "module_name": mod_name
+                }]
+                metadata = {"title": title, "page_title": page_title, "module_name": mod_name}
+                if previous and previous.get("title", "").strip().casefold() != "download":
+                    metadata = {key: previous.get(key, "") for key in ("title", "page_title", "module_name")}
+                file_metadata[downloaded_name] = dict(metadata, aliases=aliases)
 
         # Save file metadata map
         meta_path = contained_path(output_dir, ".file_metadata.json")

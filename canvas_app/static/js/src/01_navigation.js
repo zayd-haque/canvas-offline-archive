@@ -1,4 +1,4 @@
-async function loadCourseList() {
+async function loadCourseList({ preserveView = false } = {}) {
   try {
     const res = await fetch("/api/courses");
     const data = await res.json();
@@ -30,6 +30,7 @@ async function loadCourseList() {
     els.courseSelector.value = defaultCourse.name;
     await selectCourse(defaultCourse.name);
 
+    if (preserveView) return;
     const startup = state.settings?.startupView || "dashboard";
     if (startup === "canvas" && defaultCourse) {
       switchView("canvas");
