@@ -19,7 +19,7 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = "canvas-offline-archive"
-RELEASE_FILE_OVERRIDES = {"docs/SECURITY.md": ROOT / "SECURITY.md"}
+RELEASE_FILE_OVERRIDES = {}
 ROOT_FILES = {
     "bootstrap.sh",
     "Open Canvas Offline Archive.command",
@@ -29,9 +29,9 @@ ROOT_FILES = {
     "release_updater.py",
 }
 DOC_FILES = {
-    "docs/INSTALL.md",
-    "docs/WINDOWS_INSTALL.md",
-    "docs/SECURITY.md",
+    "INSTALL.md",
+    "WINDOWS_INSTALL.md",
+    "SECURITY.md",
 }
 EXACT_FILES = {
     "Canvas Module Downloader/config.example.json",
