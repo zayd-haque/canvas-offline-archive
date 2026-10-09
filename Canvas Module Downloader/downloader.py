@@ -111,14 +111,15 @@ def download_file(session, url, title, temp_dir):
             # Canvas exposes the same attachment through multiple URLs. Reuse
             # identical bytes of the same type while retaining distinct versions.
             incoming_digest = digest(partial)
-            for entry in os.scandir(temp_dir):
-                if (entry.name.startswith(".") or not entry.is_file(follow_symlinks=False)
-                        or os.path.splitext(entry.name)[1].lower() != ext.lower()
-                        or entry.stat(follow_symlinks=False).st_size != count):
-                    continue
-                existing = contained_path(temp_dir, entry.name)
-                if digest(existing) == incoming_digest:
-                    return entry.name
+            with os.scandir(temp_dir) as entries:
+                for entry in entries:
+                    if (entry.name.startswith(".") or not entry.is_file(follow_symlinks=False)
+                            or os.path.splitext(entry.name)[1].lower() != ext.lower()
+                            or entry.stat(follow_symlinks=False).st_size != count):
+                        continue
+                    existing = contained_path(temp_dir, entry.name)
+                    if digest(existing) == incoming_digest:
+                        return entry.name
             if os.path.exists(target):
                 target = unique_destination(target)
             from safety import move_unique
@@ -188,12 +189,10 @@ def download_all(output_dir: str, cookies=None) -> int:
                 aliases = previous.get("aliases", []) + [{
                     "title": title, "page_title": page_title, "module_name": mod_name
                 }]
-                file_metadata[downloaded_name] = {
-                    "title": title,
-                    "page_title": page_title,
-                    "module_name": mod_name,
-                    "aliases": aliases
-                }
+                metadata = {"title": title, "page_title": page_title, "module_name": mod_name}
+                if previous and previous.get("title", "").strip().casefold() != "download":
+                    metadata = {key: previous.get(key, "") for key in ("title", "page_title", "module_name")}
+                file_metadata[downloaded_name] = dict(metadata, aliases=aliases)
 
         # Save file metadata map
         meta_path = contained_path(output_dir, ".file_metadata.json")

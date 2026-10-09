@@ -43,6 +43,18 @@ class DownloaderFollowupTests(unittest.TestCase):
             self.assertNotEqual(first, changed)
             self.assertEqual(len(list(Path(root).iterdir())), 2)
 
+    def test_duplicate_aliases_preserve_descriptive_metadata(self):
+        with tempfile.TemporaryDirectory() as root:
+            items = [{"title": "Lecture Notes", "url": "https://canvas.example/files/1", "module_name": "Week 1"},
+                     {"title": "Download", "url": "https://canvas.example/files/1/download", "module_name": "Week 2"}]
+            (Path(root) / '.modules_map.json').write_text(json.dumps({"downloadable_items": items}))
+            with patch.object(downloader, "download_file", return_value="notes.pdf"):
+                count = downloader.download_all(root)
+            metadata = json.loads((Path(root) / '.file_metadata.json').read_text(encoding='utf-8'))["notes.pdf"]
+            self.assertEqual(count, 1)
+            self.assertEqual(metadata["title"], "Lecture Notes")
+            self.assertEqual([alias["module_name"] for alias in metadata["aliases"]], ["Week 1", "Week 2"])
+
     def test_cookie_host_domain_path_expiry_and_secure_scope(self):
         cookies = [
             {'name': 'host', 'value': 'dummy', 'domain': 'canvas.example', 'path': '/private', 'secure': True},
@@ -102,7 +114,7 @@ class DownloaderFollowupTests(unittest.TestCase):
 
     def test_reclassification_keeps_each_run_manifest_and_original(self):
         # Load only the function: importing the CLI would start caffeinate.
-        tree = ast.parse((SOURCE / 'main.py').read_text())
+        tree = ast.parse((SOURCE / 'main.py').read_text(encoding='utf-8'))
         function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'run_local_reclassify')
         namespace = {'os': os, 'CONFIG_PATH': 'unused-synthetic-config'}
         for name in ('resolve_course_root', 'validate_tree', 'contained_path', 'unique_destination', 'atomic_json', 'move_unique'):
@@ -128,9 +140,9 @@ class DownloaderFollowupTests(unittest.TestCase):
             self.assertEqual(len(runs), 2)
             recovered = set()
             for run in runs:
-                mapping = json.loads((run / 'recovery-manifest.json').read_text())
+                mapping = json.loads((run / 'recovery-manifest.json').read_text(encoding='utf-8'))
                 self.assertEqual(set(mapping), {'essay.txt'})
-                recovered.add((run / mapping['essay.txt']).read_text())
+                recovered.add((run / mapping['essay.txt']).read_text(encoding='utf-8'))
             self.assertEqual(recovered, {'first version', 'second version'})
 
 
