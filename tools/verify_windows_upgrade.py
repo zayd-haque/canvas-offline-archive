@@ -40,7 +40,7 @@ with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
     def launch_and_check(label):
         url_file = root / 'browser-url.txt'; url_file.unlink(missing_ok=True)
         harness = root / 'launch.py'
-        harness.write_text('import sys,webbrowser\nfrom pathlib import Path\nsys.path.insert(0,'+repr(str(app/'canvas_app'))+')\nwebbrowser.open=lambda url: Path('+repr(str(url_file))+').write_text(url)\nimport run\nrun.main()\n')
+        harness.write_text('import sys,webbrowser\nfrom pathlib import Path\nsys.path.insert(0,'+repr(str(app/'canvas_app'))+')\nwebbrowser.open=lambda url: Path('+repr(str(url_file))+').write_text(url)\nimport run,server\nprint('FIXTURE_ROOTS',server.get_effective_search_dirs(),flush=True)\nprint('FIXTURE_CATALOG',server.discover_courses(),flush=True)\nrun.main()\n')
         log = root / (label+'.log')
         with log.open('wb') as output:
             proc = subprocess.Popen([str(python),str(harness)],cwd=app,env=env,stdout=output,stderr=subprocess.STDOUT)
@@ -55,7 +55,7 @@ with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
                 with urllib.request.urlopen(request) as response: cookie=response.headers['Set-Cookie'].split(';')[0]
                 request=urllib.request.Request('http://127.0.0.1:8000/api/courses',headers={'Cookie':cookie})
                 with urllib.request.urlopen(request) as response: courses=json.load(response)['courses']
-                assert any(c['name']=='Synthetic Course' for c in courses),courses
+                assert any(c['name']=='Synthetic Course' for c in courses),(courses,log.read_text(encoding='utf-8',errors='replace'))
                 print(label+'_STARTUP_AND_COURSE_ACCESS_PASS')
             finally:
                 proc.terminate(); proc.wait(timeout=20)
