@@ -79,3 +79,9 @@ Do not share a populated app folder or course archive without reviewing it for p
 ## Current release status
 
 The automated fixture suite covers ingestion helpers, APIs, search, security boundaries, and frontend contracts. It does not prove a successful fresh login or complete capture for every institution, a clean installation on every Mac, or every native preview and OCR path. Please [report reproducible problems](https://github.com/zayd-haque/canvas-offline-archive/issues) without posting credentials, grades, or private course content.
+
+## Feedback
+
+[Share feedback](https://forms.gle/VAo7LTDTAcfoarT78) about setup, bugs, your experience, or ideas for improvements. No Google or GitHub account is required; contact details are optional. Responses are stored in Google Forms and visible to the project owner.
+
+Please omit passwords, API keys, grades, student names, private course content, and unredacted logs. You can also [open a public GitHub issue](https://github.com/zayd-haque/canvas-offline-archive/issues) for reproducible bugs.
