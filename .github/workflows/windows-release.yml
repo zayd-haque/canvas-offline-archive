@@ -1,7 +1,8 @@
 name: Windows release verification
 on:
   push:
-    branches: ['codex/windows-release-verification']
+    branches: [main, 'codex/windows-release-verification']
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
