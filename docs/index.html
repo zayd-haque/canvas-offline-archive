@@ -34,28 +34,9 @@
     .button:hover { background: #12b486; }
     .button.secondary { background: #1c1c20; border: 1px solid #34343b; }
     .button.secondary:hover { background: #29292f; }
-    .preview { border: 1px solid #333339; border-radius: 14px; background: #121215; box-shadow: 0 30px 90px rgba(0,0,0,.45); overflow: hidden; }
-    .preview-bar { display: flex; align-items: center; gap: 7px; padding: 11px 14px; background: #1c1c20; border-bottom: 1px solid var(--border); }
-    .preview-bar i { width: 8px; height: 8px; border-radius: 50%; background: #585861; }
-    .preview-bar span { color: #a1a1aa; font-size: 10px; margin-left: auto; }
-    .preview-body { display: grid; grid-template-columns: 110px 1fr; min-height: 315px; }
-    .preview-rail { background: #141416; border-right: 1px solid var(--border); padding: 15px 9px; display: flex; flex-direction: column; gap: 8px; }
-    .preview-rail b { color: var(--accent-light); font-size: 10px; padding: 5px 7px 13px; }
-    .preview-rail em { padding: 8px 7px; border-radius: 6px; color: #9b9ba4; font-style: normal; font-size: 10px; }
-    .preview-rail em.active { color: #f4f4f5; background: #252529; }
-    .preview-content { padding: 0; min-width: 0; }
-    .preview-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 11px 16px; border-bottom: 1px solid var(--border); color: #d4d4d8; font-size: 10px; }
-    .preview-search { min-width: 100px; padding: 5px 10px; border: 1px solid #333339; border-radius: 5px; color: #85858e; }
-    .preview-main { padding: 21px 17px; }
-    .preview-kicker { color: var(--accent-light); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
-    .preview-content h3 { font-size: 19px; margin: 6px 0 14px; }
-    .preview-card { border: 1px solid #303036; background: var(--card); border-radius: 10px; overflow: hidden; margin: 10px 0; }
-    .preview-card-banner { height: 45px; background: linear-gradient(120deg, #146857, #19a783); padding: 11px; color: #fff; font-size: 13px; font-weight: 750; }
-    .preview-card-body { padding: 10px 12px; }
-    .preview-card strong { display: block; font-size: 11px; margin-bottom: 5px; }
-    .preview-card small { color: #aeb1bc; font-size: 9px; }
-    .preview-stats { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--border); color: #aeb1bc; font-size: 9px; }
-    .preview-chip { display: inline-block; margin-top: 8px; padding: 5px 8px; border-radius: 6px; color: var(--accent-light); background: #17372f; font-size: 9px; }
+    .preview { margin: 0; min-width: 0; border: 1px solid #333339; border-radius: 14px; background: #121215; box-shadow: 0 30px 90px rgba(0,0,0,.45); overflow: hidden; }
+    .preview img { display: block; width: 100%; height: auto; }
+    .preview figcaption { padding: 10px 14px; color: #aeb1bc; font-size: 12px; text-align: center; border-top: 1px solid var(--border); }
     section { padding: 70px 0; border-top: 1px solid #292a30; }
     .section-head { max-width: 720px; margin-bottom: 30px; }
     .section-head p, .body-copy { color: #bcbec8; font-size: 17px; line-height: 1.65; }
@@ -92,7 +73,7 @@
   <main id="top" class="wrap">
     <div class="hero">
       <div><div class="eyebrow">A local app for Mac and Windows</div><h1>Keep your courses within reach.</h1><p class="lead">Capture Canvas materials you can access, organize them on your computer, and come back to your files, deadlines, and search results even when you are offline.</p><div class="buttons"><a class="button" href="https://github.com/zayd-haque/canvas-offline-archive/releases/latest/download/canvas-offline-archive-macos.zip">Download for Mac ↓</a><a class="button secondary" href="https://github.com/zayd-haque/canvas-offline-archive/releases/latest/download/canvas-offline-archive-windows.zip">Download for Windows ↓</a></div><p class="small">Python 3.14 required · First setup needs internet · The app runs on your computer</p></div>
-      <div class="preview" aria-label="Illustration based on the app's course dashboard"><div class="preview-bar"><i></i><i></i><i></i><span>Canvas Offline Archive · local</span></div><div class="preview-body"><div class="preview-rail" aria-hidden="true"><b>◈ ARCHIVE</b><em class="active">▦ Dashboard</em><em>＋ Add Course</em><em>↻ Rescan</em><em>⚙ Settings</em></div><div class="preview-content"><div class="preview-toolbar"><span>Dashboard</span><span class="preview-search">⌕ Search files</span></div><div class="preview-main"><div class="preview-kicker">YOUR LOCAL LIBRARY</div><h3>Academic Courses</h3><div class="preview-card"><div class="preview-card-banner">Example Course</div><div class="preview-card-body"><strong>Example Course</strong><small>Fall term · Local course folder</small><div class="preview-stats"><span>24 files</span><span>8 modules</span><span>6 tasks</span></div><span class="preview-chip">Modules &nbsp; Files &nbsp; Timeline &nbsp; Folder</span></div></div></div></div></div></div>
+      <figure class="preview"><img src="assets/dashboard-preview.png" width="1920" height="1260" alt="Example dashboard with sample courses" fetchpriority="high"><figcaption>Example dashboard with sample courses</figcaption></figure>
     </div>
     <section id="features"><div class="section-head"><div class="eyebrow">What you can do</div><h2>A course archive you can actually use.</h2><p>Canvas Offline Archive turns captured materials into a browsable local library. Capture the categories you want, then find and open them.</p></div><div class="grid">
       <article class="feature"><div class="symbol" aria-hidden="true">▦</div><h3>Choose what to capture</h3><p>Select modules, files, syllabus, assignments, announcements, and other available Canvas categories. Published content determines what can be saved.</p></article>
