@@ -388,24 +388,24 @@
                   <input type="radio" name="settingsGeminiTier" value="paid" id="opt-tier-paid" checked>
                   <div class="radio-content">
                     <div class="radio-title" style="display:flex; align-items:center; gap:6px;">
-                      <span>Paid Tier</span>
+                      <span>Paid pacing</span>
                       <span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(16,185,129,0.15); color:#10B981; font-weight:700;">FAST (~120 RPM)</span>
                     </div>
-                    <div class="radio-subtitle">High-speed cloud classification (0.2s pause).</div>
+                    <div class="radio-subtitle">Faster request pacing. Enable billing separately in your Google Cloud project.</div>
                   </div>
                 </label>
                 <label class="settings-radio-card" id="card-tier-free" style="flex:1;">
                   <input type="radio" name="settingsGeminiTier" value="free" id="opt-tier-free">
                   <div class="radio-content">
                     <div class="radio-title" style="display:flex; align-items:center; gap:6px;">
-                      <span>Free Tier</span>
-                      <span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(234,179,8,0.15); color:#EAB308; font-weight:700;">SAFE (10 RPM)</span>
+                      <span>Free pacing</span>
+                      <span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(234,179,8,0.15); color:#EAB308; font-weight:700;">SLOW (10 RPM)</span>
                     </div>
                     <div class="radio-subtitle">Slower request pacing (6.0s pause); this does not make cloud submissions private.</div>
                   </div>
                 </label>
               </div>
-              <p class="gemini-privacy-warning"><strong>Gemini free-tier privacy:</strong> Google says unpaid API inputs and outputs may be used to improve its products and reviewed by humans. Do not send sensitive, confidential, or personal course material through the free tier. Choose local Keyword Rules or Ollama to keep classification content on this computer. This rate-tier setting only changes request pacing; it does not change your Google billing or data-use terms. <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Read Google's terms</a>.</p>
+              <p class="gemini-privacy-warning"><strong>Recommended for Gemini:</strong> Use an API key from a Google Cloud project with active billing. Paid-service prompts and responses are not used for product improvement by default; limited abuse-monitoring logs remain, and opting into data sharing changes that protection. Do not send personal or confidential material through the unpaid service. Selecting Paid pacing here does not enable Google billing. Choose Keyword Heuristics or Ollama to classify locally. The app reduces direct identifiers before Gemini requests where detected, but names or identity clues can remain. This is not guaranteed anonymization or permission to send sensitive content. <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Google's terms</a> · <a href="https://ai.google.dev/gemini-api/docs/logs-policy" target="_blank" rel="noopener noreferrer">Data sharing</a>.</p>
             </div>
           </section>
           <section class="settings-section">
@@ -673,7 +673,7 @@
   <button type="button" id="onboarding-resume" class="onboarding-resume hidden">Resume setup guide</button>
 
   <script src="/static/js/icons.js?v=74"></script>
-  <script src="/static/js/app.js?v=ef648aad9709"></script>
+  <script src="/static/js/app.js?v=9e45c9bcd96f"></script>
 
 </body>
 </html>

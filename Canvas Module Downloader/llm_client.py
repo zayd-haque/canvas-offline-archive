@@ -359,6 +359,11 @@ def query_llm(prompt: str, config: dict, timeout: int = 25, as_json: bool = Fals
 
     # Provider 1: Google Gemini API
     if provider == "gemini" and gemini_key:
+        # Apply at the shared cloud boundary; local models and files stay intact.
+        from cloud_privacy import redact_cloud_text
+        if len(gemini_key) >= 8:
+            prompt = prompt.replace(gemini_key, "[REDACTED_CREDENTIAL]")
+        prompt = redact_cloud_text(prompt)
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent"
         headers = {"Content-Type": "application/json", "x-goog-api-key": gemini_key}
         payload = {

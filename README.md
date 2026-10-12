@@ -72,6 +72,10 @@ An empty install does not make Canvas available offline. You need to capture a c
 
 ## Your data and privacy
 
+For Gemini, we recommend an API key from a Google Cloud project with active billing. Under [Google's paid-service terms](https://ai.google.dev/gemini-api/terms), prompts and responses are not used for product improvement by default, but limited abuse-monitoring logs remain. Opting into [data sharing](https://ai.google.dev/gemini-api/docs/logs-policy) changes that protection. Do not submit personal or confidential content through the unpaid service. The app's Paid pacing option does not enable Google billing; configure billing separately in your Google Cloud project.
+
+The app reduces detected direct identifiers before Gemini requests, including classification, knowledge generation, and sorting. Unlabelled names and identity clues can remain: this is not guaranteed anonymization or permission to send sensitive content. Keyword Heuristics and Ollama keep classification content local.
+
 The release package contains app source and documentation. It does **not** contain the maintainer's course archives, local configuration, browser session, API keys, or search caches. Your archives and settings are created on your computer after installation. The local server binds to `127.0.0.1` and uses a session opened by the launcher; it is not a hosted service.
 
 Do not share a populated app folder or course archive without reviewing it for private material. Older archives may contain a `.session_cookies.json` export. The [security notes](SECURITY.md) describe the local session and sharing considerations. For removal, stop the app and delete its unzipped folder; archives in your chosen destination and private caches are separate. [INSTALL.md](INSTALL.md) lists their locations.

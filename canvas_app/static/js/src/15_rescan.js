@@ -358,7 +358,7 @@ function renderRescanView() {
                     </div>
                     <div class="ai-engine-desc">
                       <p class="ai-engine-reliability">${escapeHtml(organizationMethodDescription("gemini"))}</p>
-                      Sends course excerpts and filenames to Google, including submitted work. Free-tier content may be used to improve products and reviewed by humans.
+                      Sends course excerpts and filenames to Google. A project with active billing is recommended; unpaid-service content can be used for product improvement and human review.
                     </div>
                   </div>
 
@@ -396,7 +396,7 @@ function renderRescanView() {
                           <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px; display:flex; align-items:center; gap:8px;">
                             <span>API key configured locally</span>
                             <span>•</span>
-                            <span>⚡ <strong>${(state.settings?.geminiTier || rescanState.geminiTier || "paid") === "paid" ? "Paid Tier (Fast ~120 RPM)" : "Free Tier (Safe 10 RPM)"}</strong></span>
+                            <span>⚡ <strong>${(state.settings?.geminiTier || rescanState.geminiTier || "paid") === "paid" ? "Paid pacing (Fast ~120 RPM)" : "Free pacing (10 RPM)"}</strong></span>
                           </div>
                         </div>
                       </div>
@@ -429,7 +429,7 @@ function renderRescanView() {
                       <div style="display:flex; align-items:center; gap:8px;">
                         <span style="color:#F59E0B; font-size:14px;">⚡</span>
                         <span style="font-size:12.5px; color:var(--text-main);">
-                          Gemini Rate Tier: <strong>${(state.settings?.geminiTier || rescanState.geminiTier || "paid") === "paid" ? "Paid Tier (Fast ~120 RPM)" : "Free Tier (Safe 10 RPM)"}</strong>
+                          Gemini Rate Tier: <strong>${(state.settings?.geminiTier || rescanState.geminiTier || "paid") === "paid" ? "Paid pacing (Fast ~120 RPM)" : "Free pacing (10 RPM)"}</strong>
                         </span>
                       </div>
                       <button type="button" class="btn-text-link" data-open-settings="ingestion" style="font-size:12px; color:var(--canvas-active-accent, #60A5FA); background:none; border:none; cursor:pointer; text-decoration:underline;">
@@ -437,7 +437,7 @@ function renderRescanView() {
                       </button>
                     </div>
                   `}
-                  <p class="gemini-privacy-warning"><strong>Before rescanning with Gemini:</strong> Submitted coursework and other course content may be sent to Google. Do not use Google's free API tier for sensitive, confidential, or personal material. Use Keyword Heuristics or Ollama for local classification. The app's rate-tier choice controls pacing, not your Google billing or data-use terms. <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Google's terms</a>.</p>
+                  <p class="gemini-privacy-warning"><strong>Recommended for Gemini:</strong> Use an API key from a Google Cloud project with active billing. Paid-service prompts and responses are not used for product improvement by default; limited abuse-monitoring logs remain, and opting into data sharing changes that protection. Do not send personal or confidential material through the unpaid service. Selecting Paid pacing here does not enable Google billing. Choose Keyword Heuristics or Ollama to classify locally. The app reduces direct identifiers before Gemini requests where detected, but names or identity clues can remain. This is not guaranteed anonymization or permission to send sensitive content. <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Google's terms</a> · <a href="https://ai.google.dev/gemini-api/docs/logs-policy" target="_blank" rel="noopener noreferrer">Data sharing</a>.</p>
                 ` : ""}
 
                 ${rescanState.aiProvider === "ollama" ? `
