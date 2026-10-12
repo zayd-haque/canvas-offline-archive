@@ -67,7 +67,23 @@ with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
                 assert any(c['name']=='Synthetic Course' for c in courses),(courses,log.read_text(encoding='utf-8',errors='replace'))
                 print(label+'_STARTUP_AND_COURSE_ACCESS_PASS')
             finally:
-                proc.terminate(); proc.wait(timeout=20)
+                # [Codex] Windows venv python can be a redirector with a child
+                # interpreter holding SQLite files. Own and stop the whole tree.
+                original_error = sys.exc_info()[1]
+                try:
+                    if proc.poll() is None:
+                        subprocess.run(
+                            ['taskkill', '/PID', str(proc.pid), '/T', '/F'],
+                            check=True, timeout=20, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                        )
+                    proc.wait(timeout=20)
+                except Exception as cleanup_error:
+                    if original_error is None:
+                        raise
+                    original_error.add_note(
+                        'Owned launch process tree cleanup failed: ' + type(cleanup_error).__name__
+                    )
     launch_and_check('BEFORE_UPGRADE')
     env.pop('CANVAS_OFFLINE_NO_UPDATE')
     subprocess.run([os.environ['COMSPEC'],'/d','/c',str(cmd),'--setup-only'],cwd=app,env=env,check=True,timeout=600)
