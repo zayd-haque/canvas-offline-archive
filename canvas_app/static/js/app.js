@@ -207,7 +207,285 @@ function normalizeDocPath(p) {
   return clean;
 }
 
-// Initialize App
+// ==========================================================================
+// Universal In-UI Custom Dropdown Engine
+// Upgrades native <select> elements into accessible in-DOM theme-styled dropdowns.
+// ==========================================================================
+
+function upgradeSelectToCustomDropdown(select) {
+  if (!select || !(select instanceof HTMLElement)) return null;
+  if (select.dataset.customDropdownEnhanced === "true") {
+    syncCustomSelect(select);
+    return select._customDropdownContainer || null;
+  }
+
+  // Mark as enhanced and hide native select visually
+  select.classList.add("custom-select-native");
+  select.setAttribute("tabindex", "-1");
+  select.setAttribute("aria-hidden", "true");
+  select.dataset.customDropdownEnhanced = "true";
+
+  // Create wrapper container
+  const container = document.createElement("div");
+  container.className = "custom-select-container";
+
+  // Transfer flex/sizing styles if explicitly set
+  if (select.style.flex) container.style.flex = select.style.flex;
+  if (select.style.width) container.style.width = select.style.width;
+  if (select.style.maxWidth) container.style.maxWidth = select.style.maxWidth;
+  if (select.style.minWidth) container.style.minWidth = select.style.minWidth;
+
+  // Insert container before select and nest select inside
+  select.parentNode.insertBefore(container, select);
+  container.appendChild(select);
+
+  // Trigger button
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "custom-select-trigger";
+  trigger.setAttribute("aria-haspopup", "listbox");
+  trigger.setAttribute("aria-expanded", "false");
+
+  const labelSpan = document.createElement("span");
+  labelSpan.className = "custom-select-label";
+
+  const chevronSpan = document.createElement("span");
+  chevronSpan.className = "custom-select-chevron";
+  chevronSpan.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+  trigger.appendChild(labelSpan);
+  trigger.appendChild(chevronSpan);
+  container.appendChild(trigger);
+
+  // Dropdown menu
+  const menu = document.createElement("div");
+  menu.className = "custom-select-menu hidden";
+  menu.setAttribute("role", "listbox");
+  container.appendChild(menu);
+
+  // Bind internal references
+  select._customDropdownContainer = container;
+  select._customDropdownTrigger = trigger;
+  select._customDropdownLabel = labelSpan;
+  select._customDropdownMenu = menu;
+
+  function toggleMenu(open) {
+    const isCurrentlyOpen = container.classList.contains("open");
+    const shouldOpen = typeof open === "boolean" ? open : !isCurrentlyOpen;
+
+    if (shouldOpen) {
+      // Close any other open dropdowns
+      document.querySelectorAll(".custom-select-container.open").forEach(c => {
+        if (c !== container) {
+          c.classList.remove("open", "open-upward");
+          const m = c.querySelector(".custom-select-menu");
+          if (m) m.classList.add("hidden");
+          const t = c.querySelector(".custom-select-trigger");
+          if (t) t.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      syncCustomSelect(select);
+      menu.classList.remove("hidden");
+      container.classList.add("open");
+      trigger.setAttribute("aria-expanded", "true");
+
+      // Auto-detect upward opening if near bottom of viewport or modal
+      const rect = trigger.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const modalBody = trigger.closest(".settings-modal-body, .launcher-content, .rescan-content");
+      let modalSpaceBelow = spaceBelow;
+      if (modalBody) {
+        const modalRect = modalBody.getBoundingClientRect();
+        modalSpaceBelow = modalRect.bottom - rect.bottom;
+      }
+      const menuHeight = 220;
+      if ((spaceBelow < menuHeight || modalSpaceBelow < 120) && rect.top > menuHeight) {
+        container.classList.add("open-upward");
+      } else {
+        container.classList.remove("open-upward");
+      }
+
+      // Scroll selected option into view
+      const selectedOpt = menu.querySelector(".custom-select-option.selected");
+      if (selectedOpt) {
+        selectedOpt.scrollIntoView({ block: "nearest" });
+      }
+    } else {
+      container.classList.remove("open", "open-upward");
+      menu.classList.add("hidden");
+      trigger.setAttribute("aria-expanded", "false");
+    }
+  }
+
+  trigger.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (select.disabled) return;
+    toggleMenu();
+  });
+
+  // Keyboard navigation on trigger
+  trigger.addEventListener("keydown", (e) => {
+    if (select.disabled) return;
+    if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!container.classList.contains("open")) {
+        toggleMenu(true);
+      } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        const options = Array.from(menu.querySelectorAll(".custom-select-option:not(.disabled)"));
+        if (!options.length) return;
+        const currentIdx = options.findIndex(o => o.classList.contains("focused") || o.classList.contains("selected"));
+        let nextIdx = e.key === "ArrowDown" ? currentIdx + 1 : currentIdx - 1;
+        if (nextIdx < 0) nextIdx = 0;
+        if (nextIdx >= options.length) nextIdx = options.length - 1;
+        options.forEach(o => o.classList.remove("focused"));
+        options[nextIdx].classList.add("focused");
+        options[nextIdx].scrollIntoView({ block: "nearest" });
+      } else if (e.key === "Enter" || e.key === " ") {
+        const focused = menu.querySelector(".custom-select-option.focused") || menu.querySelector(".custom-select-option.selected");
+        if (focused && !focused.classList.contains("disabled")) {
+          focused.click();
+        }
+      }
+    } else if (e.key === "Escape") {
+      toggleMenu(false);
+    }
+  });
+
+  // Observe programmatic DOM changes to <option> elements
+  const observer = new MutationObserver(() => {
+    syncCustomSelect(select);
+  });
+  observer.observe(select, { childList: true, subtree: true, attributes: true });
+
+  // Hook value setter on select instance for automatic sync
+  const origDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+  try {
+    Object.defineProperty(select, "value", {
+      get: function() {
+        return origDescriptor.get.call(this);
+      },
+      set: function(newVal) {
+        origDescriptor.set.call(this, newVal);
+        syncCustomSelect(this);
+      },
+      configurable: true
+    });
+  } catch (e) {}
+
+  select.addEventListener("change", () => {
+    syncCustomSelect(select);
+  });
+
+  syncCustomSelect(select);
+  return container;
+}
+
+function syncCustomSelect(select) {
+  if (!select || !select._customDropdownMenu) return;
+  const menu = select._customDropdownMenu;
+  const labelSpan = select._customDropdownLabel;
+  const trigger = select._customDropdownTrigger;
+  const container = select._customDropdownContainer;
+
+  if (select.disabled) {
+    trigger.disabled = true;
+    container.classList.add("disabled");
+  } else {
+    trigger.disabled = false;
+    container.classList.remove("disabled");
+  }
+
+  const options = Array.from(select.options);
+  const selectedIndex = select.selectedIndex;
+  const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : null;
+
+  if (selectedOption) {
+    labelSpan.textContent = selectedOption.textContent || selectedOption.label || "";
+    if (selectedOption.disabled || selectedOption.value === "") {
+      labelSpan.classList.add("is-placeholder");
+    } else {
+      labelSpan.classList.remove("is-placeholder");
+    }
+  } else {
+    labelSpan.textContent = select.getAttribute("placeholder") || "Select…";
+    labelSpan.classList.add("is-placeholder");
+  }
+
+  menu.innerHTML = "";
+  options.forEach((opt, idx) => {
+    const isSelected = idx === selectedIndex;
+    const isDisabled = opt.disabled;
+
+    const optDiv = document.createElement("div");
+    optDiv.className = `custom-select-option ${isSelected ? "selected" : ""} ${isDisabled ? "disabled" : ""}`;
+    optDiv.setAttribute("role", "option");
+    optDiv.setAttribute("aria-selected", String(isSelected));
+    optDiv.dataset.value = opt.value;
+    optDiv.dataset.index = idx;
+
+    const textSpan = document.createElement("span");
+    textSpan.className = "custom-select-option-text";
+    textSpan.textContent = opt.textContent || opt.label || "";
+
+    const checkSpan = document.createElement("span");
+    checkSpan.className = "custom-select-option-check";
+    checkSpan.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+    optDiv.appendChild(textSpan);
+    optDiv.appendChild(checkSpan);
+
+    optDiv.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (isDisabled) return;
+      select.value = opt.value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      select.dispatchEvent(new Event("input", { bubbles: true }));
+      syncCustomSelect(select);
+
+      container.classList.remove("open", "open-upward");
+      menu.classList.add("hidden");
+      trigger.setAttribute("aria-expanded", "false");
+      trigger.focus();
+    });
+
+    menu.appendChild(optDiv);
+  });
+}
+
+function initAllCustomDropdowns(root = document) {
+  if (!root || !root.querySelectorAll) return;
+  const selects = root.querySelectorAll("select:not(.custom-select-native)");
+  selects.forEach(sel => {
+    upgradeSelectToCustomDropdown(sel);
+  });
+}
+
+// Global outside click and Escape listener to dismiss open custom dropdowns
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".custom-select-container")) {
+    document.querySelectorAll(".custom-select-container.open").forEach(c => {
+      c.classList.remove("open", "open-upward");
+      const m = c.querySelector(".custom-select-menu");
+      if (m) m.classList.add("hidden");
+      const t = c.querySelector(".custom-select-trigger");
+      if (t) t.setAttribute("aria-expanded", "false");
+    });
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".custom-select-container.open").forEach(c => {
+      c.classList.remove("open", "open-upward");
+      const m = c.querySelector(".custom-select-menu");
+      if (m) m.classList.add("hidden");
+      const t = c.querySelector(".custom-select-trigger");
+      if (t) t.setAttribute("aria-expanded", "false");
+    });
+  }
+});
 
 // --- Module: 01_navigation.js ---
 async function loadCourseList({ preserveView = false } = {}) {
@@ -240,6 +518,12 @@ async function loadCourseList({ preserveView = false } = {}) {
     // [Codex] Preserve user selection across refreshes without course-specific defaults.
     const defaultCourse = state.courses.find(c => c.name === state.currentCourse) || state.courses[0];
     els.courseSelector.value = defaultCourse.name;
+    if (typeof upgradeSelectToCustomDropdown === "function" && els.courseSelector) {
+      upgradeSelectToCustomDropdown(els.courseSelector);
+    }
+    if (typeof syncCustomSelect === "function" && els.courseSelector) {
+      syncCustomSelect(els.courseSelector);
+    }
     await selectCourse(defaultCourse.name);
 
     if (preserveView) return;
@@ -1156,7 +1440,7 @@ function renderSidebar() {
     const item = document.createElement("a");
     item.className = `course-sidebar-item ${state.activeCanvasTab === t.id ? "active" : ""}`;
     item.innerHTML = `
-      <span class="item-icon">${t.icon}</span>
+      <span class="item-icon" aria-hidden="true">${t.icon}</span>
       <span>${t.label}</span>
       ${t.count !== undefined ? `<span class="sidebar-badge">${t.count}</span>` : ""}
     `;
@@ -3397,6 +3681,29 @@ async function systemAction(filePath, action = "open", targetCourse = null) {
 // --- Settings & Preferences Management ---
 
 // --- Module: 11_settings.js ---
+// [Codex] Shared comparative guidance; development evidence is not a course accuracy guarantee.
+function organizationMethodDescription(provider) {
+  const descriptions = {
+    gemini: "Cloud AI for unfamiliar wording and custom folders. Most consistent in our synthetic tests; review folder choices.",
+    ollama: "Local AI; requires Ollama and a model. Tested with qwen2.5:7b. Ambiguous files may be misplaced.",
+    rules: "Fast local rules using filenames, text and folder labels. Unfamiliar wording may need custom mappings."
+  };
+  return descriptions[provider] || "";
+}
+
+function organizationReviewNote() {
+  return "Synthetic test results are not a guarantee for your course. Review organized files.";
+}
+
+function renderOrganizationMethodComparison() {
+  return `<dl class="organization-method-list">${[
+    ["gemini", "Gemini"], ["ollama", "Ollama"], ["rules", "Keyword Heuristics"]
+  ].map(([provider, label]) => `<dt>${label}</dt><dd>${escapeHtml(organizationMethodDescription(provider))}</dd>`).join("")}</dl>
+    <p class="organization-review-note">${escapeHtml(organizationReviewNote())}</p>
+    <p class="organization-review-note">Accuracy on independently human-reviewed courses has not been established.</p>
+    <p class="organization-review-note">Gemini sends classification content to Google. Ollama and Keyword Heuristics classify locally. The Gemini privacy guidance above still applies.</p>`;
+}
+
 function initSettings() {
   try {
     const saved = localStorage.getItem("canvas_course_settings");
@@ -3410,6 +3717,7 @@ function initSettings() {
   initExtendedSettings();
   applySettings(state.settings);
   loadHierarchySettings();
+  loadKeywordRules();
 }
 
 function applyTheme(themeVal) {
@@ -3468,6 +3776,23 @@ function applyGlobalFontScale(scaleVal) {
   }
 }
 
+function syncSettingsCategoriesUI() {
+  const s = state.settings;
+  const chosen = Array.isArray(s.ingestionCategories) ? s.ingestionCategories : [];
+  document.querySelectorAll("[data-settings-category]").forEach(el => {
+    const isChecked = chosen.includes(el.dataset.settingsCategory);
+    el.checked = isChecked;
+    const parent = el.closest(".settings-category-item");
+    if (parent) {
+      parent.classList.toggle("selected", isChecked);
+    }
+  });
+  const countBadge = document.getElementById("settings-categories-count");
+  if (countBadge && typeof LAUNCHER_CATEGORIES !== "undefined") {
+    countBadge.textContent = `${chosen.length} of ${LAUNCHER_CATEGORIES.length} Selected`;
+  }
+}
+
 function applySettings(s) {
   applyTheme(s.theme);
   applyAccent(s.accentColor);
@@ -3477,6 +3802,8 @@ function applySettings(s) {
 
 function syncSettingsUI() {
   const s = state.settings;
+  const methodComparison = document.getElementById("settings-organization-method-comparison");
+  if (methodComparison) methodComparison.innerHTML = renderOrganizationMethodComparison();
   const aiProv = document.getElementById("settings-ai-provider");
   if (aiProv) aiProv.value = s.aiProvider;
   const ollamaMod = document.getElementById("settings-ollama-model");
@@ -3485,7 +3812,7 @@ function syncSettingsUI() {
   if (headlessEl) headlessEl.checked = s.headless;
   const autoscrollEl = document.getElementById("settings-autoscroll");
   if (autoscrollEl) autoscrollEl.checked = s.terminalAutoscroll;
-  document.querySelectorAll("[data-settings-category]").forEach(el => { el.checked = (s.ingestionCategories || []).includes(el.dataset.settingsCategory); });
+  syncSettingsCategoriesUI();
 
   // Default action radio
   const rad = document.querySelector(`input[name="defaultAction"][value="${s.defaultAction}"]`);
@@ -3557,6 +3884,10 @@ function openSettingsModal(section = "general") {
   loadGeminiKeyStatus();
   loadDirectoriesSettings();
   loadHierarchySettings();
+  loadKeywordRules();
+  if (typeof initAllCustomDropdowns === "function" && els.settingsModal) {
+    initAllCustomDropdowns(els.settingsModal);
+  }
   refreshSettingsIndex();
   probeOllamaStatus();
   refreshCacheStatus();
@@ -3670,7 +4001,7 @@ async function probeOllamaStatus() {
       badge.textContent = "Offline";
       badge.style.background = "rgba(239, 68, 68, 0.2)";
       badge.style.color = "#EF4444";
-      text.textContent = "Ollama is not running. Add Course will use Gemini Cloud or Keyword rules.";
+      text.textContent = "Ollama is not running. Start Ollama with an installed model, or choose Gemini or Keyword Heuristics.";
     }
   } catch {
     badge.textContent = "Local Port 11434";
@@ -4315,6 +4646,7 @@ function syncHierarchyUI() {
   }
 
   renderHierarchyTreePreview();
+  populateRuleFolderDropdown();
 }
 
 function renderHierarchyTreePreview() {
@@ -4818,6 +5150,323 @@ async function resetHierarchySettingsAction() {
   }
 }
 
+// ==========================================================================
+// Custom Keyword Rules Configuration
+// ==========================================================================
+
+async function loadKeywordRules() {
+  try {
+    const res = await fetch("/api/settings/keyword-rules");
+    if (res.ok) {
+      const data = await res.json();
+      state.keywordRules = Array.isArray(data.rules) ? data.rules : [];
+    }
+  } catch {
+    state.keywordRules = state.keywordRules || [];
+  }
+  renderKeywordRules();
+  populateRuleFolderDropdown();
+}
+
+function populateRuleFolderDropdown() {
+  const select = document.getElementById("settings-new-rule-folder");
+  if (!select) return;
+  const currentVal = select.value;
+
+  const folders = new Set();
+  const h = state.settings?.hierarchy;
+  if (h?.customFolders && Array.isArray(h.customFolders)) {
+    h.customFolders.forEach(f => {
+      if (f.name) folders.add(f.name);
+    });
+  }
+  if (h?.mainFolders && Array.isArray(h.mainFolders)) {
+    h.mainFolders.forEach(f => {
+      if (f.name) folders.add(f.name);
+    });
+  }
+  if (state.keywordRules && Array.isArray(state.keywordRules)) {
+    state.keywordRules.forEach(r => {
+      if (r.folder) folders.add(r.folder);
+    });
+  }
+  if (folders.size === 0 && typeof DEFAULT_CUSTOM_FOLDERS !== "undefined") {
+    DEFAULT_CUSTOM_FOLDERS.forEach(f => {
+      if (f.name) folders.add(f.name);
+    });
+  }
+
+  let html = '<option value="" disabled selected>Select destination folder…</option>';
+  Array.from(folders).sort().forEach(folder => {
+    html += `<option value="${escapeHtml(folder)}">${escapeHtml(folder)}</option>`;
+  });
+  select.innerHTML = html;
+  if (currentVal && folders.has(currentVal)) {
+    select.value = currentVal;
+  }
+  if (typeof upgradeSelectToCustomDropdown === "function") {
+    upgradeSelectToCustomDropdown(select);
+  }
+  if (typeof syncCustomSelect === "function") {
+    syncCustomSelect(select);
+  }
+}
+
+let confirmingDeleteRuleIndex = null;
+let keywordRulesUndoStack = [];
+let keywordRulesUndoTimer = null;
+
+function showKeywordUndoBanner(label, previousRules) {
+  keywordRulesUndoStack.push({ label, rules: previousRules });
+  const banner = document.getElementById("keyword-rules-undo-banner");
+  const text = document.getElementById("keyword-rules-undo-text");
+  if (!banner || !text) return;
+  text.textContent = label;
+  banner.classList.remove("hidden");
+  if (keywordRulesUndoTimer) clearTimeout(keywordRulesUndoTimer);
+  keywordRulesUndoTimer = setTimeout(() => {
+    hideKeywordUndoBanner();
+  }, 12000);
+}
+
+function hideKeywordUndoBanner() {
+  const banner = document.getElementById("keyword-rules-undo-banner");
+  if (banner) banner.classList.add("hidden");
+  if (keywordRulesUndoTimer) {
+    clearTimeout(keywordRulesUndoTimer);
+    keywordRulesUndoTimer = null;
+  }
+}
+
+async function undoKeywordRuleAction() {
+  if (!keywordRulesUndoStack.length) return;
+  const lastAction = keywordRulesUndoStack.pop();
+  if (!lastAction || !Array.isArray(lastAction.rules)) return;
+  state.keywordRules = lastAction.rules;
+  confirmingDeleteRuleIndex = null;
+  hideKeywordUndoBanner();
+  await saveKeywordRules("Restored previous rules.");
+}
+
+function renderKeywordRules() {
+  const listEl = document.getElementById("settings-keyword-rules-list");
+  const badgeEl = document.getElementById("keyword-rules-count-badge");
+  const rules = state.keywordRules || [];
+
+  if (badgeEl) {
+    if (rules.length > 0) {
+      badgeEl.textContent = `${rules.length} rule${rules.length === 1 ? "" : "s"}`;
+      badgeEl.style.display = "inline-block";
+    } else {
+      badgeEl.style.display = "none";
+    }
+  }
+
+  if (!listEl) return;
+
+  if (!rules.length) {
+    listEl.innerHTML = `
+      <div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12.5px; border:1px dashed var(--border-color); border-radius:8px;">
+        No custom keyword rules defined. Map custom course vocabulary (e.g. sprints, case briefs) above to route files automatically.
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = rules.map((rule, idx) => {
+    const kws = Array.isArray(rule.keywords) ? rule.keywords : [];
+    const trashSvg = (typeof Icons !== "undefined" && Icons.trash)
+      ? Icons.trash
+      : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
+
+    const isConfirming = confirmingDeleteRuleIndex === idx;
+
+    const actionHtml = isConfirming
+      ? `
+        <div class="rule-delete-confirm-group">
+          <span class="rule-delete-confirm-label">Delete rule?</span>
+          <button type="button" class="btn-rule-confirm-yes" data-action="confirm-delete-rule" data-index="${idx}">Delete</button>
+          <button type="button" class="btn-rule-confirm-no" data-action="cancel-delete-rule" data-index="${idx}">Cancel</button>
+        </div>
+      `
+      : `
+        <button type="button" class="btn-rule-delete" data-action="request-delete-rule" data-index="${idx}" title="Delete keyword rule" aria-label="Delete rule for ${escapeHtml(rule.folder || '')}">
+          ${trashSvg}
+        </button>
+      `;
+
+    return `
+      <div class="keyword-rule-card">
+        <div class="keyword-rule-info">
+          <div class="keyword-rule-folder-header">
+            <span class="keyword-rule-folder-badge">📁 ${escapeHtml(rule.folder || "Unassigned")}</span>
+          </div>
+          <div class="keyword-chips-container">
+            ${kws.map((kw, kwIdx) => `
+              <span class="keyword-chip" data-rule-index="${idx}" data-kw-index="${kwIdx}">
+                <button type="button" class="keyword-chip-remove" data-action="remove-keyword" data-rule-index="${idx}" data-kw-index="${kwIdx}" title="Remove '${escapeHtml(kw)}'" aria-label="Remove keyword ${escapeHtml(kw)}">×</button>
+                <span class="keyword-chip-text">${escapeHtml(kw)}</span>
+              </span>
+            `).join("")}
+          </div>
+        </div>
+        ${actionHtml}
+      </div>
+    `;
+  }).join("");
+}
+
+async function addKeywordRuleAction() {
+  const kwInput = document.getElementById("settings-new-rule-keywords");
+  const folderSelect = document.getElementById("settings-new-rule-folder");
+  const statusEl = document.getElementById("settings-keyword-rules-status");
+
+  if (!kwInput || !folderSelect) return;
+
+  const rawKeywords = kwInput.value.trim();
+  const folder = folderSelect.value.trim();
+
+  if (!rawKeywords) {
+    if (statusEl) {
+      statusEl.textContent = "Please enter one or more comma-separated keywords.";
+      statusEl.style.color = "#EF4444";
+    }
+    kwInput.focus();
+    return;
+  }
+
+  if (!folder) {
+    if (statusEl) {
+      statusEl.textContent = "Please select a destination folder.";
+      statusEl.style.color = "#EF4444";
+    }
+    folderSelect.focus();
+    return;
+  }
+
+  const parsedKeywords = rawKeywords
+    .split(",")
+    .map(k => k.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!parsedKeywords.length) {
+    if (statusEl) {
+      statusEl.textContent = "Please enter valid keywords.";
+      statusEl.style.color = "#EF4444";
+    }
+    kwInput.focus();
+    return;
+  }
+
+  state.keywordRules = state.keywordRules || [];
+
+  // Check if a rule for this exact folder already exists
+  const existingIndex = state.keywordRules.findIndex(
+    r => (r.folder || "").toLowerCase() === folder.toLowerCase()
+  );
+
+  if (existingIndex >= 0) {
+    const existing = state.keywordRules[existingIndex];
+    const merged = Array.from(new Set([...(existing.keywords || []), ...parsedKeywords]));
+    state.keywordRules[existingIndex] = {
+      ...existing,
+      folder: folder,
+      keywords: merged,
+      override: true
+    };
+  } else {
+    state.keywordRules.push({
+      folder: folder,
+      keywords: Array.from(new Set(parsedKeywords)),
+      override: true
+    });
+  }
+
+  kwInput.value = "";
+  folderSelect.value = "";
+  if (typeof syncCustomSelect === "function") {
+    syncCustomSelect(folderSelect);
+  }
+  if (statusEl) {
+    statusEl.textContent = "Saving rule…";
+    statusEl.style.color = "";
+  }
+
+  await saveKeywordRules("Keyword rule added successfully.");
+}
+
+async function removeKeywordAction(ruleIdx, kwIdx) {
+  state.keywordRules = state.keywordRules || [];
+  if (ruleIdx < 0 || ruleIdx >= state.keywordRules.length) return;
+  const rule = state.keywordRules[ruleIdx];
+  if (!rule || !Array.isArray(rule.keywords) || kwIdx < 0 || kwIdx >= rule.keywords.length) return;
+
+  const previousSnapshot = JSON.parse(JSON.stringify(state.keywordRules));
+  const kw = rule.keywords[kwIdx];
+
+  if (rule.keywords.length <= 1) {
+    state.keywordRules.splice(ruleIdx, 1);
+    confirmingDeleteRuleIndex = null;
+    showKeywordUndoBanner(`Removed "${kw}" (rule for ${rule.folder} removed)`, previousSnapshot);
+    await saveKeywordRules(`Removed keyword "${kw}".`);
+  } else {
+    rule.keywords.splice(kwIdx, 1);
+    showKeywordUndoBanner(`Removed keyword "${kw}"`, previousSnapshot);
+    await saveKeywordRules(`Removed keyword "${kw}".`);
+  }
+}
+
+async function deleteKeywordRuleAction(idx) {
+  state.keywordRules = state.keywordRules || [];
+  if (idx >= 0 && idx < state.keywordRules.length) {
+    const previousSnapshot = JSON.parse(JSON.stringify(state.keywordRules));
+    const deletedRule = state.keywordRules[idx];
+    state.keywordRules.splice(idx, 1);
+    confirmingDeleteRuleIndex = null;
+    showKeywordUndoBanner(`Deleted rule for "${deletedRule.folder}"`, previousSnapshot);
+    await saveKeywordRules("Rule deleted.");
+  }
+}
+
+async function saveKeywordRules(successMessage = "Changes saved.") {
+  const statusEl = document.getElementById("settings-keyword-rules-status");
+  try {
+    const res = await fetch("/api/settings/keyword-rules", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rules: state.keywordRules })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.rules)) {
+        state.keywordRules = data.rules;
+      }
+      renderKeywordRules();
+      populateRuleFolderDropdown();
+      if (statusEl) {
+        statusEl.textContent = successMessage;
+        statusEl.style.color = "#10B981";
+        setTimeout(() => {
+          if (statusEl.textContent === successMessage) {
+            statusEl.textContent = "";
+          }
+        }, 3000);
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      if (statusEl) {
+        statusEl.textContent = err.detail || "Failed to save keyword rules.";
+        statusEl.style.color = "#EF4444";
+      }
+    }
+  } catch {
+    if (statusEl) {
+      statusEl.textContent = "Network error while saving keyword rules.";
+      statusEl.style.color = "#EF4444";
+    }
+  }
+}
+
 function initExtendedSettings() {
   const s = state.settings;
   if (!["gemini", "ollama", "rules"].includes(s.aiProvider)) s.aiProvider = "gemini";
@@ -4837,9 +5486,22 @@ function initExtendedSettings() {
   delete s.geminiApiKey;
   delete s.gemini_api_key;
   const categoriesContainer = document.getElementById("settings-categories");
-  if (categoriesContainer) {
-    categoriesContainer.innerHTML = LAUNCHER_CATEGORIES.map(c =>
-      `<label class="settings-check"><input type="checkbox" data-settings-category="${c.id}"> ${c.label}</label>`).join("");
+  if (categoriesContainer && typeof LAUNCHER_CATEGORIES !== "undefined") {
+    categoriesContainer.innerHTML = LAUNCHER_CATEGORIES.map(c => {
+      const iconSvg = (typeof c.icon === "function" ? c.icon() : "") || (typeof Icons !== "undefined" ? Icons.folderOpen : "");
+      const checkSvg = (typeof Icons !== "undefined" && Icons.check) ? Icons.check : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`;
+      return `
+        <label class="settings-category-item" data-category="${c.id}">
+          <input type="checkbox" data-settings-category="${c.id}" class="settings-category-checkbox">
+          <span class="settings-category-check-indicator">${checkSvg}</span>
+          <span class="settings-category-icon">${iconSvg}</span>
+          <div class="settings-category-label-group">
+            <span class="settings-category-name">${escapeHtml(c.label)}</span>
+            <span class="settings-category-sub">${escapeHtml(c.sub || "")}</span>
+          </div>
+        </label>
+      `;
+    }).join("");
   }
   const bind = (id, key, checkbox = false) => {
     const el = document.getElementById(id);
@@ -4918,16 +5580,50 @@ function initExtendedSettings() {
     cacheClearBtn.addEventListener("click", clearCacheAction);
   }
 
-  document.getElementById("settings-categories").addEventListener("change", e => {
-    const chosen = Array.from(document.querySelectorAll("[data-settings-category]:checked"), el => el.dataset.settingsCategory);
-    if (!chosen.length) {
-      e.target.checked = true;
-      document.getElementById("settings-launcher-status").textContent = "Keep at least one default category selected.";
-      return;
-    }
-    state.settings.ingestionCategories = chosen;
-    saveSettingsToStorage();
-  });
+  const settingsCategoriesEl = document.getElementById("settings-categories");
+  if (settingsCategoriesEl) {
+    settingsCategoriesEl.addEventListener("change", e => {
+      const chosen = Array.from(document.querySelectorAll("[data-settings-category]:checked"), el => el.dataset.settingsCategory);
+      if (!chosen.length) {
+        e.target.checked = true;
+        const statusEl = document.getElementById("settings-launcher-status");
+        if (statusEl) statusEl.textContent = "Keep at least one default category selected.";
+        syncSettingsCategoriesUI();
+        return;
+      }
+      state.settings.ingestionCategories = chosen;
+      saveSettingsToStorage();
+      syncSettingsCategoriesUI();
+    });
+  }
+
+  const btnSelectAll = document.getElementById("btn-settings-categories-all");
+  if (btnSelectAll && typeof LAUNCHER_CATEGORIES !== "undefined") {
+    btnSelectAll.addEventListener("click", () => {
+      state.settings.ingestionCategories = LAUNCHER_CATEGORIES.map(c => c.id);
+      saveSettingsToStorage();
+      syncSettingsCategoriesUI();
+      const statusEl = document.getElementById("settings-launcher-status");
+      if (statusEl) {
+        statusEl.textContent = "All categories selected.";
+        setTimeout(() => { if (statusEl.textContent === "All categories selected.") statusEl.textContent = ""; }, 2500);
+      }
+    });
+  }
+
+  const btnSelectNone = document.getElementById("btn-settings-categories-none");
+  if (btnSelectNone) {
+    btnSelectNone.addEventListener("click", () => {
+      state.settings.ingestionCategories = ["modules"];
+      saveSettingsToStorage();
+      syncSettingsCategoriesUI();
+      const statusEl = document.getElementById("settings-launcher-status");
+      if (statusEl) {
+        statusEl.textContent = "Reset to core Modules only.";
+        setTimeout(() => { if (statusEl.textContent === "Reset to core Modules only.") statusEl.textContent = ""; }, 2500);
+      }
+    });
+  }
   document.querySelectorAll("[data-settings-section]").forEach(button => button.addEventListener("click", () => {
     document.querySelectorAll("[data-settings-section]").forEach(b => {
       b.classList.toggle("active", b === button);
@@ -4945,6 +5641,8 @@ function initExtendedSettings() {
     e.target.textContent = input.type === "password" ? "Show" : "Hide";
     e.target.setAttribute("aria-pressed", String(input.type === "text"));
   });
+  // [Codex] Connect the explicit credential save action to its guarded writer.
+  document.getElementById("settings-key-save").addEventListener("click", saveGeminiKey);
   const btnIdxRefresh = document.getElementById("settings-index-refresh");
   if (btnIdxRefresh) btnIdxRefresh.addEventListener("click", () => refreshSettingsIndex());
   const btnIdxRebuild = document.getElementById("settings-index-rebuild");
@@ -5125,6 +5823,81 @@ function initExtendedSettings() {
 
   const btnResetHierarchy = document.getElementById("btn-reset-hierarchy");
   if (btnResetHierarchy) btnResetHierarchy.addEventListener("click", () => resetHierarchySettingsAction());
+
+  // Custom Keyword Rules listeners
+  const btnAddRule = document.getElementById("btn-add-keyword-rule");
+  if (btnAddRule) {
+    btnAddRule.addEventListener("click", () => addKeywordRuleAction());
+  }
+
+  const inputNewRuleKeywords = document.getElementById("settings-new-rule-keywords");
+  if (inputNewRuleKeywords) {
+    inputNewRuleKeywords.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addKeywordRuleAction();
+      }
+    });
+  }
+
+  const listRulesEl = document.getElementById("settings-keyword-rules-list");
+  if (listRulesEl) {
+    listRulesEl.addEventListener("click", (e) => {
+      // 1. Request rule deletion (prompts confirmation)
+      const requestDeleteBtn = e.target.closest('[data-action="request-delete-rule"]');
+      if (requestDeleteBtn) {
+        const idx = parseInt(requestDeleteBtn.dataset.index, 10);
+        if (!isNaN(idx)) {
+          confirmingDeleteRuleIndex = idx;
+          renderKeywordRules();
+        }
+        return;
+      }
+
+      // 2. Confirm rule deletion
+      const confirmDeleteBtn = e.target.closest('[data-action="confirm-delete-rule"]');
+      if (confirmDeleteBtn) {
+        const idx = parseInt(confirmDeleteBtn.dataset.index, 10);
+        if (!isNaN(idx)) {
+          deleteKeywordRuleAction(idx);
+        }
+        return;
+      }
+
+      // 3. Cancel rule deletion
+      const cancelDeleteBtn = e.target.closest('[data-action="cancel-delete-rule"]');
+      if (cancelDeleteBtn) {
+        confirmingDeleteRuleIndex = null;
+        renderKeywordRules();
+        return;
+      }
+
+      // 4. Remove individual keyword chip
+      const removeKwBtn = e.target.closest('[data-action="remove-keyword"]');
+      if (removeKwBtn) {
+        const ruleIdx = parseInt(removeKwBtn.dataset.ruleIndex, 10);
+        const kwIdx = parseInt(removeKwBtn.dataset.kwIndex, 10);
+        if (!isNaN(ruleIdx) && !isNaN(kwIdx)) {
+          removeKeywordAction(ruleIdx, kwIdx);
+        }
+        return;
+      }
+    });
+  }
+
+  const btnUndoKw = document.getElementById("btn-undo-keyword-action");
+  if (btnUndoKw) {
+    btnUndoKw.addEventListener("click", () => {
+      undoKeywordRuleAction();
+    });
+  }
+
+  const btnDismissUndo = document.getElementById("btn-dismiss-undo-banner");
+  if (btnDismissUndo) {
+    btnDismissUndo.addEventListener("click", () => {
+      hideKeywordUndoBanner();
+    });
+  }
 
   syncHierarchyUI();
 
@@ -6856,6 +7629,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadDirectoriesSettings();
   setupIcons();
   setupEventListeners();
+  if (typeof initAllCustomDropdowns === "function") {
+    initAllCustomDropdowns();
+  }
   initOnboarding();
   // [Codex] Delegation supports rerendered buttons without inline script handlers.
   document.addEventListener("click", event => {
@@ -6874,6 +7650,8 @@ function setupIcons() {
   if (els.iconNavDashboard) els.iconNavDashboard.innerHTML = Icons.dashboard;
   if (els.iconNavLauncher) els.iconNavLauncher.innerHTML = Icons.plusCircle;
   if (els.iconNavRescan) els.iconNavRescan.innerHTML = Icons.refreshCw;
+  const icNavOnboarding = document.getElementById("icon-nav-onboarding");
+  if (icNavOnboarding) icNavOnboarding.innerHTML = Icons.quizzes;
   const icNavCanvas = document.getElementById("icon-nav-canvas");
   if (icNavCanvas) icNavCanvas.innerHTML = Icons.home;
   const icNavTimeline = document.getElementById("icon-nav-timeline");
@@ -7342,7 +8120,7 @@ function renderLauncherView() {
       if (container && launcherState.hardwareProfile) {
         container.innerHTML = `
           <div class="hardware-profile-banner">
-            <span class="hardware-banner-icon">${Icons.cpu || Icons.sparkles}</span>
+            <span class="hardware-banner-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</span>
             <div class="hardware-banner-text">
               <strong>Hardware Profile:</strong> ${escapeHtml(launcherState.hardwareProfile.chip || "Apple Silicon")} • ${launcherState.hardwareProfile.ram_gb || 16} GB RAM
               ${launcherState.hardwareProfile.is_apple_silicon && (launcherState.hardwareProfile.ram_gb >= 16) 
@@ -7436,7 +8214,7 @@ function renderLauncherView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
                 <div class="launcher-card-title-group">
-                  <div class="launcher-card-icon">${Icons.canvas}</div>
+                  <div class="launcher-card-icon" aria-hidden="true">${Icons.canvas}</div>
                   <div>
                     <h3 class="launcher-card-title">Course Identity & Desktop Hierarchy</h3>
                     <p class="launcher-card-desc">Target Canvas course URL and destination folder</p>
@@ -7472,8 +8250,8 @@ function renderLauncherView() {
 
             <div class="wizard-actions-bar single-action">
               <button type="button" class="btn-wizard-next" id="btn-wizard-stage-1-next">
-                <span>Continue to AI Organization</span>
-                <span>→</span>
+                <span class="btn-label">Continue to AI Organization</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowRight}</span>
               </button>
             </div>
           </div>
@@ -7486,7 +8264,7 @@ function renderLauncherView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
               <div class="launcher-card-title-group">
-                <div class="launcher-card-icon">${Icons.cpu || Icons.sparkles}</div>
+                <div class="launcher-card-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</div>
                 <div>
                   <h3 class="launcher-card-title">AI Organization Engine</h3>
                   <p class="launcher-card-desc">Automated file classification & subfolder clustering</p>
@@ -7496,7 +8274,7 @@ function renderLauncherView() {
 
             <div id="launcher-hardware-badge-container">
               <div class="hardware-profile-banner">
-                <span class="hardware-banner-icon">${Icons.cpu || Icons.sparkles}</span>
+                <span class="hardware-banner-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</span>
                 <div class="hardware-banner-text">
                   <strong>Hardware Profile:</strong> ${escapeHtml(launcherState.hardwareProfile?.chip || "Apple Silicon")} • ${launcherState.hardwareProfile?.ram_gb || 16} GB RAM
                   ${launcherState.hardwareProfile?.is_apple_silicon && (launcherState.hardwareProfile?.ram_gb >= 16) 
@@ -7513,30 +8291,34 @@ function renderLauncherView() {
                   <span class="ai-engine-badge ai-badge-cloud">Cloud API</span>
                 </div>
                 <div class="ai-engine-desc">
-                  Google Gemini processes course excerpts and filenames in the cloud, including submitted coursework and rescans. Free-tier submissions may be used by Google to improve products and reviewed by humans.
+                  <p class="ai-engine-reliability">${escapeHtml(organizationMethodDescription("gemini"))}</p>
+                  Sends course excerpts and filenames to Google, including submitted work. Free-tier content may be used to improve products and reviewed by humans.
                 </div>
               </div>
 
               <div class="ai-engine-card ${launcherState.aiProvider === "ollama" ? "selected" : ""}" data-provider="ollama">
                 <div class="ai-engine-card-header">
                   <span class="ai-engine-name">Offline Ollama</span>
-                  <span class="ai-engine-badge ai-badge-local">Local GPU</span>
+                  <span class="ai-engine-badge ai-badge-local">On-device</span>
                 </div>
                 <div class="ai-engine-desc">
-                  Classification runs on this computer with Ollama. Course content is not sent to a cloud AI provider.
+                  <p class="ai-engine-reliability">${escapeHtml(organizationMethodDescription("ollama"))}</p>
+                  Course content stays on this computer.
                 </div>
               </div>
 
               <div class="ai-engine-card ${launcherState.aiProvider === "rules" ? "selected" : ""}" data-provider="rules">
                 <div class="ai-engine-card-header">
                   <span class="ai-engine-name">Keyword Heuristics</span>
-                  <span class="ai-engine-badge ai-badge-rules">Zero-LLM</span>
+                  <span class="ai-engine-badge ai-badge-rules">Local rules</span>
                 </div>
                 <div class="ai-engine-desc">
-                  Deterministic keyword patterns and course syllabus token rules without requiring any AI models.
+                  ${escapeHtml(organizationMethodDescription("rules"))}
                 </div>
               </div>
             </div>
+
+            <p class="organization-review-note">${escapeHtml(organizationReviewNote())}</p>
 
             ${launcherState.aiProvider === "gemini" ? `
               ${launcherState.geminiConfigured ? `
@@ -7544,16 +8326,16 @@ function renderLauncherView() {
                   <div style="display:flex; align-items:center; gap:10px;">
                     <span style="display:flex; color:#10B981; width:18px; height:18px; flex-shrink:0;">${Icons.check || "✓"}</span>
                     <div>
-                      <div style="font-size:13px; font-weight:700; color:var(--text-main);">Google AI Studio API Key Configured</div>
+                      <div style="font-size:13px; font-weight:700; color:var(--text-main);">Gemini API key configured</div>
                       <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px; display:flex; align-items:center; gap:8px;">
-                        <span>API key active in <code>config.json</code></span>
+                        <span>API key configured locally</span>
                         <span>•</span>
                         <span>⚡ <strong>${(state.settings?.geminiTier || launcherState.geminiTier || "paid") === "paid" ? "Paid Tier (Fast ~120 RPM)" : "Free Tier (Safe 10 RPM)"}</strong></span>
                       </div>
                     </div>
                   </div>
                   <button type="button" class="btn-launcher-secondary btn-open-gemini-settings">
-                    <span style="display:flex;width:14px;height:14px;">${Icons.settings || ""}</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.settings || ""}</span>
                     <span>Change in Settings</span>
                   </button>
                 </div>
@@ -7612,11 +8394,12 @@ function renderLauncherView() {
 
             <div class="wizard-actions-bar">
               <button type="button" class="btn-wizard-back" id="btn-wizard-stage-2-back">
-                <span>← Back to Course Info</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowLeft}</span>
+                <span class="btn-label">Back to Course Info</span>
               </button>
               <button type="button" class="btn-wizard-next" id="btn-wizard-stage-2-next">
-                <span>Continue to Category Scope</span>
-                <span>→</span>
+                <span class="btn-label">Continue to Category Scope</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowRight}</span>
               </button>
             </div>
           </div>
@@ -7628,7 +8411,7 @@ function renderLauncherView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
                 <div class="launcher-card-title-group">
-                  <div class="launcher-card-icon">${Icons.modules}</div>
+                  <div class="launcher-card-icon" aria-hidden="true">${Icons.modules}</div>
                   <div>
                     <h3 class="launcher-card-title">Category Scope</h3>
                     <p class="launcher-card-desc">Select which Canvas LMS sections to crawl and download</p>
@@ -7689,11 +8472,12 @@ function renderLauncherView() {
 
             <div class="wizard-actions-bar">
               <button type="button" class="btn-wizard-back" id="btn-wizard-stage-3-back">
-                <span>← Back to AI Setup</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowLeft}</span>
+                <span class="btn-label">Back to AI Setup</span>
               </button>
               <button type="button" class="btn-launcher-primary" id="btn-launch-full" ${launcherState.isIngesting ? "disabled" : ""}>
-                <span class="btn-icon">${Icons.rocket}</span>
-                <span>${launcherState.isIngesting ? "Pipeline Running..." : "🚀 Add Course (Full Pipeline)"}</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.rocket}</span>
+                <span class="btn-label">${launcherState.isIngesting ? "Pipeline Running..." : "Add Course (Full Pipeline)"}</span>
               </button>
             </div>
           </div>
@@ -7706,7 +8490,7 @@ function renderLauncherView() {
             <div class="horizontal-timeline-card">
               <div class="horizontal-timeline-header">
                 <div class="horizontal-timeline-title-area">
-                  <div class="launcher-card-icon" style="width:28px;height:28px;">${Icons.timeline || Icons.dashboard}</div>
+                  <div class="launcher-card-icon" aria-hidden="true" style="width:28px;height:28px;">${Icons.timeline || Icons.dashboard}</div>
                   <h3 class="horizontal-timeline-title">Pipeline Progress: ${escapeHtml(activeTitle)}</h3>
                 </div>
                 <span class="horizontal-timeline-badge">${escapeHtml(badgeLabel)}</span>
@@ -7755,7 +8539,7 @@ function renderLauncherView() {
                   <button type="button" class="terminal-btn-clear" id="btn-clear-logs" title="Clear console output">Clear</button>
                   ${launcherState.isIngesting ? `
                     <button type="button" class="terminal-btn-cancel" id="btn-cancel-ingest">
-                      <span style="display:flex;width:12px;height:12px;">${Icons.stopCircle || ""}</span>
+                      <span class="btn-icon" aria-hidden="true">${Icons.stopCircle}</span>
                       <span>Cancel</span>
                     </button>
                   ` : ""}
@@ -7783,15 +8567,16 @@ function renderLauncherView() {
                 </div>
                 <div class="completion-actions">
                   <button type="button" class="btn-completion-view" id="btn-completion-view">
-                    <span style="display:flex;width:14px;height:14px;">${Icons.canvas}</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.canvas}</span>
                     <span>View Course in App</span>
                   </button>
                   <button type="button" class="btn-completion-reveal" id="btn-completion-reveal">
-                    <span style="display:flex;width:14px;height:14px;">${Icons.macFinder}</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.macFinder}</span>
                     <span>Show in Folder</span>
                   </button>
                   <button type="button" class="btn-launcher-secondary" id="btn-ingest-another" style="margin-left: auto;">
-                    <span>➕ Add Another Course</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.plus}</span>
+                    <span>Add Another Course</span>
                   </button>
                 </div>
               </div>
@@ -7805,6 +8590,9 @@ function renderLauncherView() {
 
   els.viewLauncher.innerHTML = html;
   wireLauncherEventListeners();
+  if (typeof initAllCustomDropdowns === "function") {
+    initAllCustomDropdowns(els.viewLauncher);
+  }
   scrollTerminalToBottom();
 }
 
@@ -8458,7 +9246,7 @@ async function fetchRescanGeminiKeyStatus() {
 
 const RESCAN_STEPS = {
   organize: [
-    { step: 1, title: "Scan Desktop Directory", desc: "Analyzing existing files and hierarchy in ~/Desktop/[Course]/" },
+    { step: 1, title: "Scan Course Directory", desc: "Analyzing existing files and hierarchy in the selected course archive" },
     { step: 2, title: "AI Model Initialization", desc: "Setting up local Ollama or Gemini classification engine" },
     { step: 3, title: "File Classification & Sorter", desc: "Re-organizing files into Lectures & Resources vs. Work folders" },
     { step: 4, title: "Rebuild Blueprint & Index", desc: "Updating canvas_course.json and rebuilding search index" }
@@ -8466,7 +9254,7 @@ const RESCAN_STEPS = {
   gradescope: [
     { step: 1, title: "Gradescope Authentication", desc: "Verifying session credentials and launching browser" },
     { step: 2, title: "Fetch Submissions & Rubrics", desc: "Downloading latest graded work and feedback" },
-    { step: 3, title: "Organize Work Directory", desc: "Sorting new submissions into ~/Desktop/[Course]/[Course] Work/" },
+    { step: 3, title: "Organize Work Directory", desc: "Sorting new submissions into the selected course work folders" },
     { step: 4, title: "Update Course Data", desc: "Syncing gradescope metadata in local course blueprint" }
   ],
   rescrape: [
@@ -8520,7 +9308,7 @@ function renderRescanView() {
       if (container && rescanState.hardwareProfile) {
         container.innerHTML = `
           <div class="hardware-profile-banner">
-            <span class="hardware-banner-icon">${Icons.cpu || Icons.sparkles}</span>
+            <span class="hardware-banner-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</span>
             <div class="hardware-banner-text">
               <strong>Hardware Profile:</strong> ${escapeHtml(rescanState.hardwareProfile.chip || "Apple Silicon")} • ${rescanState.hardwareProfile.ram_gb || 16} GB RAM
               ${rescanState.hardwareProfile.is_apple_silicon && (rescanState.hardwareProfile.ram_gb >= 16) 
@@ -8548,14 +9336,17 @@ function renderRescanView() {
 
   const currentCourseObj = (state.courses || []).find(c => c.name === rescanState.courseName);
   const fileCount = currentCourseObj?.stats?.files || 0;
+  const courseLocation = typeof currentCourseObj?.path === "string" && currentCourseObj.path.trim()
+    ? currentCourseObj.path
+    : "Course location unavailable";
 
-  let opButtonText = "🔄 Run File Re-classification";
+  let opButtonText = "Run File Re-classification";
   let opButtonIcon = Icons.refreshCw || Icons.rocket;
   if (rescanState.operation === "gradescope") {
-    opButtonText = "🎓 Sync Gradescope Course";
+    opButtonText = "Sync Gradescope Course";
     opButtonIcon = Icons.badgeCheck || Icons.rocket;
   } else if (rescanState.operation === "rescrape") {
-    opButtonText = "🔁 Re-scrape Course Categories";
+    opButtonText = "Re-scrape Course Categories";
     opButtonIcon = Icons.rocket;
   }
 
@@ -8603,10 +9394,10 @@ function renderRescanView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
                 <div class="launcher-card-title-group">
-                  <div class="launcher-card-icon">${Icons.folders || Icons.folderOpen}</div>
+                  <div class="launcher-card-icon" aria-hidden="true">${Icons.folders || Icons.folderOpen}</div>
                   <div>
                     <h3 class="launcher-card-title">Select Target Course</h3>
-                    <p class="launcher-card-desc">Choose an existing course directory from your Desktop</p>
+                    <p class="launcher-card-desc">Choose an existing course from your configured archive locations</p>
                   </div>
                 </div>
               </div>
@@ -8625,7 +9416,7 @@ function renderRescanView() {
               </div>
 
               <div class="rescan-course-info-banner">
-                <span>📁 Location: <strong>~/Desktop/${escapeHtml(rescanState.courseName || "[Course]")}/</strong></span>
+                <span>📁 Location: <strong>${escapeHtml(courseLocation)}</strong></span>
                 <span>•</span>
                 <span>Indexed Files: <strong>${fileCount}</strong></span>
               </div>
@@ -8633,8 +9424,8 @@ function renderRescanView() {
 
             <div class="wizard-actions-bar single-action">
               <button type="button" class="btn-wizard-next" id="btn-rescan-stage-1-next">
-                <span>Continue to Maintenance Operation</span>
-                <span>→</span>
+                <span class="btn-label">Continue to Maintenance Operation</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowRight}</span>
               </button>
             </div>
           </div>
@@ -8646,7 +9437,7 @@ function renderRescanView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
                 <div class="launcher-card-title-group">
-                  <div class="launcher-card-icon">${Icons.settings || Icons.modules}</div>
+                  <div class="launcher-card-icon" aria-hidden="true">${Icons.settings || Icons.modules}</div>
                   <div>
                     <h3 class="launcher-card-title">Maintenance Operation</h3>
                     <p class="launcher-card-desc">Choose what action to perform on ${escapeHtml(rescanState.courseName)}</p>
@@ -8657,7 +9448,7 @@ function renderRescanView() {
               <div class="rescan-operations-grid">
                 <div class="rescan-op-card ${rescanState.operation === "organize" ? "selected" : ""}" data-op="organize">
                   <div class="rescan-op-card-header">
-                    <span class="rescan-op-icon">${Icons.sparkles || Icons.refreshCw}</span>
+                    <span class="rescan-op-icon" aria-hidden="true">${Icons.sparkles || Icons.refreshCw}</span>
                     <span class="rescan-op-title">Re-classify Files</span>
                   </div>
                   <p class="rescan-op-desc">
@@ -8667,7 +9458,7 @@ function renderRescanView() {
 
                 <div class="rescan-op-card ${rescanState.operation === "gradescope" ? "selected" : ""}" data-op="gradescope">
                   <div class="rescan-op-card-header">
-                    <span class="rescan-op-icon">${Icons.badgeCheck || Icons.check}</span>
+                    <span class="rescan-op-icon" aria-hidden="true">${Icons.badgeCheck || Icons.check}</span>
                     <span class="rescan-op-title">Sync Gradescope</span>
                   </div>
                   <p class="rescan-op-desc">
@@ -8677,7 +9468,7 @@ function renderRescanView() {
 
                 <div class="rescan-op-card ${rescanState.operation === "rescrape" ? "selected" : ""}" data-op="rescrape">
                   <div class="rescan-op-card-header">
-                    <span class="rescan-op-icon">${Icons.rocket || Icons.modules}</span>
+                    <span class="rescan-op-icon" aria-hidden="true">${Icons.rocket || Icons.modules}</span>
                     <span class="rescan-op-title">Re-scrape Categories</span>
                   </div>
                   <p class="rescan-op-desc">
@@ -8729,11 +9520,12 @@ function renderRescanView() {
 
             <div class="wizard-actions-bar">
               <button type="button" class="btn-wizard-back" id="btn-rescan-stage-2-back">
-                <span>← Back to Course Selection</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowLeft}</span>
+                <span class="btn-label">Back</span>
               </button>
               <button type="button" class="btn-wizard-next" id="btn-rescan-stage-2-next">
-                <span>${rescanState.operation === "gradescope" ? "Continue to Execution Controls" : "Continue to AI Classification"}</span>
-                <span>→</span>
+                <span class="btn-label">${rescanState.operation === "gradescope" ? "Continue to Execution Controls" : "Continue to AI Classification"}</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowRight}</span>
               </button>
             </div>
           </div>
@@ -8746,17 +9538,17 @@ function renderRescanView() {
               <div class="launcher-card">
                 <div class="launcher-card-header">
                   <div class="launcher-card-title-group">
-                    <div class="launcher-card-icon">${Icons.cpu || Icons.sparkles}</div>
+                    <div class="launcher-card-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</div>
                     <div>
                       <h3 class="launcher-card-title">AI Classification Engine</h3>
-                      <p class="launcher-card-desc">Engine used for organizing and naming files</p>
+                      <p class="launcher-card-desc">Method used to classify files into your folders</p>
                     </div>
                   </div>
                 </div>
 
                 <div id="rescan-hardware-badge-container">
                   <div class="hardware-profile-banner">
-                    <span class="hardware-banner-icon">${Icons.cpu || Icons.sparkles}</span>
+                    <span class="hardware-banner-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</span>
                     <div class="hardware-banner-text">
                       <strong>Hardware Profile:</strong> ${escapeHtml(rescanState.hardwareProfile?.chip || "Apple Silicon")} • ${rescanState.hardwareProfile?.ram_gb || 16} GB RAM
                     </div>
@@ -8770,30 +9562,34 @@ function renderRescanView() {
                       <span class="ai-engine-badge ai-badge-cloud">Cloud API</span>
                     </div>
                     <div class="ai-engine-desc">
-                      Google Gemini processes course excerpts and filenames in the cloud, including submitted coursework and rescans. Free-tier submissions may be used by Google to improve products and reviewed by humans.
+                      <p class="ai-engine-reliability">${escapeHtml(organizationMethodDescription("gemini"))}</p>
+                      Sends course excerpts and filenames to Google, including submitted work. Free-tier content may be used to improve products and reviewed by humans.
                     </div>
                   </div>
 
                   <div class="ai-engine-card ${rescanState.aiProvider === "ollama" ? "selected" : ""}" data-rescan-provider="ollama">
                     <div class="ai-engine-card-header">
                       <span class="ai-engine-name">Offline Ollama</span>
-                      <span class="ai-engine-badge ai-badge-local">Local GPU</span>
+                      <span class="ai-engine-badge ai-badge-local">On-device</span>
                     </div>
                     <div class="ai-engine-desc">
-                      Classification runs on this computer with Ollama. Course content is not sent to a cloud AI provider.
+                      <p class="ai-engine-reliability">${escapeHtml(organizationMethodDescription("ollama"))}</p>
+                      Course content stays on this computer.
                     </div>
                   </div>
 
                   <div class="ai-engine-card ${rescanState.aiProvider === "rules" ? "selected" : ""}" data-rescan-provider="rules">
                     <div class="ai-engine-card-header">
                       <span class="ai-engine-name">Keyword Heuristics</span>
-                      <span class="ai-engine-badge ai-badge-rules">Zero-LLM</span>
+                      <span class="ai-engine-badge ai-badge-rules">Local rules</span>
                     </div>
                     <div class="ai-engine-desc">
-                      Deterministic keyword patterns and course syllabus token rules without requiring AI models.
+                      ${escapeHtml(organizationMethodDescription("rules"))}
                     </div>
                   </div>
                 </div>
+
+                <p class="organization-review-note">${escapeHtml(organizationReviewNote())}</p>
 
                 ${rescanState.aiProvider === "gemini" ? `
                   ${rescanState.geminiConfigured ? `
@@ -8801,16 +9597,16 @@ function renderRescanView() {
                       <div style="display:flex; align-items:center; gap:10px;">
                         <span style="display:flex; color:#10B981; width:18px; height:18px; flex-shrink:0;">${Icons.check || "✓"}</span>
                         <div>
-                          <div style="font-size:13px; font-weight:700; color:var(--text-main);">Google AI Studio API Key Configured</div>
+                          <div style="font-size:13px; font-weight:700; color:var(--text-main);">Gemini API key configured</div>
                           <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px; display:flex; align-items:center; gap:8px;">
-                            <span>API key active in <code>config.json</code></span>
+                            <span>API key configured locally</span>
                             <span>•</span>
                             <span>⚡ <strong>${(state.settings?.geminiTier || rescanState.geminiTier || "paid") === "paid" ? "Paid Tier (Fast ~120 RPM)" : "Free Tier (Safe 10 RPM)"}</strong></span>
                           </div>
                         </div>
                       </div>
                       <button type="button" class="btn-launcher-secondary btn-open-gemini-settings">
-                        <span style="display:flex;width:14px;height:14px;">${Icons.settings || ""}</span>
+                        <span class="btn-icon" aria-hidden="true">${Icons.settings || ""}</span>
                         <span>Change in Settings</span>
                       </button>
                     </div>
@@ -8869,7 +9665,7 @@ function renderRescanView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
                 <div class="launcher-card-title-group">
-                  <div class="launcher-card-icon">${Icons.terminal || Icons.rocket}</div>
+                  <div class="launcher-card-icon" aria-hidden="true">${Icons.terminal || Icons.rocket}</div>
                   <div>
                     <h3 class="launcher-card-title">Execution Controls</h3>
                     <p class="launcher-card-desc">Review settings and run maintenance on ${escapeHtml(rescanState.courseName)}</p>
@@ -8891,17 +9687,18 @@ function renderRescanView() {
               <div class="rescan-course-info-banner" style="margin-top: 14px;">
                 <span>Operation: <strong>${escapeHtml(rescanState.operation === "organize" ? "Re-classify Files" : (rescanState.operation === "gradescope" ? "Sync Gradescope" : "Re-scrape Categories"))}</strong></span>
                 <span>•</span>
-                <span>Target: <strong>~/Desktop/${escapeHtml(rescanState.courseName)}/</strong></span>
+                <span>Target: <strong>${escapeHtml(courseLocation)}</strong></span>
               </div>
             </div>
 
             <div class="wizard-actions-bar">
               <button type="button" class="btn-wizard-back" id="btn-rescan-stage-3-back">
-                <span>← Back to Operation Choice</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowLeft}</span>
+                <span class="btn-label">Back</span>
               </button>
               <button type="button" class="btn-launcher-primary" id="btn-rescan-launch" ${rescanState.isIngesting ? "disabled" : ""}>
-                <span class="btn-icon">${opButtonIcon}</span>
-                <span>${rescanState.isIngesting ? "Operation Running..." : opButtonText}</span>
+                <span class="btn-icon" aria-hidden="true">${opButtonIcon}</span>
+                <span class="btn-label">${rescanState.isIngesting ? "Operation Running..." : opButtonText}</span>
               </button>
             </div>
           </div>
@@ -8914,7 +9711,7 @@ function renderRescanView() {
             <div class="horizontal-timeline-card">
               <div class="horizontal-timeline-header">
                 <div class="horizontal-timeline-title-area">
-                  <div class="launcher-card-icon" style="width:28px;height:28px;">${Icons.timeline || Icons.dashboard}</div>
+                  <div class="launcher-card-icon" aria-hidden="true" style="width:28px;height:28px;">${Icons.timeline || Icons.dashboard}</div>
                   <h3 class="horizontal-timeline-title">Operation Progress: ${escapeHtml(rescanState.operation === "organize" ? "Re-classifying Files" : (rescanState.operation === "gradescope" ? "Syncing Gradescope" : "Re-scraping Categories"))}</h3>
                 </div>
                 <span class="horizontal-timeline-badge">${rescanState.isIngesting ? `Step ${rescanState.activeStep} of ${totalSteps}` : (rescanState.finishedCourse ? "Complete" : "Standby")}</span>
@@ -8963,7 +9760,7 @@ function renderRescanView() {
                   <button type="button" class="terminal-btn-clear" id="btn-rescan-clear-logs" title="Clear console output">Clear</button>
                   ${rescanState.isIngesting ? `
                     <button type="button" class="terminal-btn-cancel" id="btn-rescan-cancel">
-                      <span style="display:flex;width:12px;height:12px;">${Icons.stopCircle || ""}</span>
+                      <span class="btn-icon" aria-hidden="true">${Icons.stopCircle}</span>
                       <span>Cancel</span>
                     </button>
                   ` : ""}
@@ -8991,15 +9788,16 @@ function renderRescanView() {
                 </div>
                 <div class="completion-actions">
                   <button type="button" class="btn-completion-view" id="btn-rescan-view-course">
-                    <span style="display:flex;width:14px;height:14px;">${Icons.canvas}</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.canvas}</span>
                     <span>View Course in App</span>
                   </button>
                   <button type="button" class="btn-completion-reveal" id="btn-rescan-reveal-finder">
-                    <span style="display:flex;width:14px;height:14px;">${Icons.macFinder}</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.macFinder}</span>
                     <span>Show in Folder</span>
                   </button>
                   <button type="button" class="btn-launcher-secondary" id="btn-rescan-another" style="margin-left: auto;">
-                    <span>➕ Rescan Another Course</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.plus}</span>
+                    <span>Rescan Another Course</span>
                   </button>
                 </div>
               </div>
@@ -9013,6 +9811,9 @@ function renderRescanView() {
 
   els.viewRescan.innerHTML = html;
   wireRescanEventListeners();
+  if (typeof initAllCustomDropdowns === "function") {
+    initAllCustomDropdowns(els.viewRescan);
+  }
   scrollRescanTerminalToBottom();
 }
 
@@ -9300,11 +10101,12 @@ async function startRescan() {
   appendRescanTerminalLog(`Starting operation '${rescanState.operation}' for '${rescanState.courseName}'...`, "info");
   renderRescanView();
 
-  const matchedCourse = (state.courseList || []).find(c => c.name === rescanState.courseName || c.folder_name === rescanState.courseName);
+  const matchedCourse = (state.courses || []).find(c => c.name === rescanState.courseName);
   const resolvedUrl = matchedCourse?.course_url || "";
 
   const payload = {
     course_name: rescanState.courseName,
+    existing_course: rescanState.courseName,
     course_url: resolvedUrl,
     ai_provider: rescanState.aiProvider,
     gemini_tier: rescanState.geminiTier,

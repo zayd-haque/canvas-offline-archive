@@ -65,6 +65,41 @@ class TestLauncherAPI(unittest.TestCase):
         server._launcher_jobs.clear()
         server._TEST_LAUNCHER_RUNNER = None
 
+    def test_existing_course_uses_catalog_root_and_disk_identity(self):
+        # [Codex] A display title and configured default must not redirect a rescan.
+        with tempfile.TemporaryDirectory() as td:
+            archive = Path(td) / "custom library" / "archive-folder"
+            archive.mkdir(parents=True)
+            captured = []
+            class FailedProc:
+                returncode = 1
+                class Stdout:
+                    async def readline(self):
+                        return b""
+                stdout = Stdout()
+                async def wait(self):
+                    return 1
+            async def fake_exec(*args, **kwargs):
+                captured.extend(args)
+                return FailedProc()
+            req = server.LauncherStartRequest(course_name="History Display", existing_course="History Display", mode="organize_only")
+            async def run():
+                response = await server.api_launcher_start(req)
+                await server._launcher_jobs[response["job_id"]]["task"]
+            with patch.object(server, "discover_courses", return_value={"History Display": {"path": str(archive)}}), patch.object(server, "_read_hierarchy_config", return_value={}), patch.object(server, "_read_configured_directories", return_value=([], "/unused-default")), patch("asyncio.create_subprocess_exec", side_effect=fake_exec), patch.object(server, "terminate_pipeline_process", new=AsyncMock()):
+                asyncio.run(run())
+            self.assertEqual(captured[captured.index("--existing-course-dir") + 1], str(archive.resolve()))
+            self.assertEqual(captured[captured.index("--course") + 1], "archive-folder")
+            self.assertNotIn("--output-dir", captured)
+
+    def test_existing_course_missing_rejected_before_launch(self):
+        # [Codex] Stale catalog selections cannot fall back to a default directory.
+        with patch.object(server, "discover_courses", return_value={"Missing": {"path": "/nonexistent-synthetic-archive"}}):
+            with self.assertRaises(server.HTTPException) as error:
+                asyncio.run(server.api_launcher_start(server.LauncherStartRequest(course_name="Missing", existing_course="Missing", mode="organize_only")))
+        self.assertEqual(error.exception.status_code, 404)
+        self.assertFalse(server._launcher_jobs)
+
     def test_get_hardware_profile(self):
         status, headers, body = asyncio.run(asgi_request('/api/launcher/hardware-profile'))
         self.assertEqual(status, 200)

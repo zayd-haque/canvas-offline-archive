@@ -6,6 +6,7 @@
 import os
 import sys
 import json
+import re
 import time
 import argparse
 import subprocess
@@ -104,7 +105,9 @@ def manage_rules(config: dict) -> dict:
             if folder_name:
                 kws_str = input(f"Enter keywords for '{folder_name}' (comma-separated): ").strip()
                 kws = [k.strip().lower() for k in kws_str.split(",") if k.strip()]
-                config.setdefault("category_rules", []).insert(0, {"folder": folder_name, "keywords": kws})
+                # [Codex] User-added mappings are authoritative; shipped generic
+                # keyword lists remain hints behind specific document evidence.
+                config.setdefault("category_rules", []).insert(0, {"folder": folder_name, "keywords": kws, "override": True})
                 save_config(config)
                 print(f"✅ Created folder '{folder_name}' with keywords: {kws}")
 
@@ -197,6 +200,28 @@ def run_full_scrape(course_url: str, output_dir: str, course_name: str, selected
                 print(f"   ℹ️ Gradescope auto-sync notice: {e}")
 
 
+def is_generated_reclassification_report(filename: str, course_name: str) -> bool:
+    """[Codex] Identify only known generated reports, including collision copies.
+
+    Announcement exports and instructor documents remain eligible. Existing
+    reports are left at their paths; they are never staged as new course input.
+    """
+    validate_component(course_name)
+    prefix = rf"(?:{re.escape(course_name)} )?"
+    report = r"(?:Assignments_and_Milestones_Timeline|Announcements_Assigned_Homework)"
+    copies = r"(?: \(\d+\))*"
+    return bool(re.fullmatch(prefix + report + copies + r"\.md", filename, flags=re.I))
+
+
+def existing_archive_output(directory):
+    """[Codex] Resolve maintenance targets without creating a new archive."""
+    target = os.path.realpath(os.path.expanduser(str(directory)))
+    if not os.path.isdir(target):
+        raise ValueError("Existing course directory is missing")
+    validate_tree(target)
+    return target
+
+
 def run_local_reclassify(output_dir: str, course_name: str):
     """Runs the organizer only on existing local files."""
     import shutil
@@ -215,7 +240,8 @@ def run_local_reclassify(output_dir: str, course_name: str):
     for root, dirs, files in os.walk(course_root):
         dirs[:] = [d for d in dirs if not d.startswith('.')]
         for name in files:
-            if name.startswith('.') or name in {"canvas_course.json", "course_knowledge.md", "Assignments_and_Milestones_Timeline.md"}:
+            if (name.startswith('.') or name in {"canvas_course.json", "course_knowledge.md"}
+                    or is_generated_reclassification_report(name, course_name)):
                 continue
             source = contained_path(course_root, os.path.relpath(os.path.join(root, name), course_root))
             target = unique_destination(contained_path(temp_dir, name))
@@ -266,6 +292,7 @@ def run_course_pipeline(
     selected_categories: set = None,
     gradescope_target: str = None,
     output_root: str = None,
+    existing_course_dir: str = None,
 ) -> dict:
     """Programmatic entrypoint for running course scraping, classification, or sync tasks.
     Designed for zero-hang backend automation, background worker threads, or CLI runners."""
@@ -302,7 +329,7 @@ def run_course_pipeline(
     default_sub = hier_template.replace("{course}", course_name).strip() if hier_template else f"{course_name} Lectures & Resources"
     subfolder_name = subfolder or default_sub
     base_root = output_root or config.get("default_course_dir") or "~/Desktop"
-    output_dir = course_output(base_root, course_name, subfolder_name)
+    output_dir = existing_archive_output(existing_course_dir) if existing_course_dir else course_output(base_root, course_name, subfolder_name)
 
     print(f"\n🚀 Pipeline Invoked | Action: {action} | Course: {course_name} | Output: {output_dir}")
     sys.stdout.flush()
@@ -475,6 +502,7 @@ def main():
     parser.add_argument("--tier", choices=["free", "paid"], help="Gemini tier ('free' or 'paid')")
     parser.add_argument("--output-dir", "--dir", dest="output_dir", help="Base output directory for course downloads (defaults to configured default_course_dir or ~/Desktop)")
     parser.add_argument("--headless", action="store_true", help="Run browser automation in headless mode")
+    parser.add_argument("--existing-course-dir", help="Exact existing archive directory for maintenance; no course or subfolder is appended")
     parser.add_argument("--offline", action="store_true", help="Enable offline organization via local Ollama (never pulls models automatically)")
     args = parser.parse_args()
 
@@ -553,7 +581,7 @@ def main():
         default_sub = hier_template.replace("{course}", course_name).strip() if hier_template else f"{course_name} Lectures & Resources"
         subfolder = args.subfolder or default_sub
         base_root = args.output_dir or config.get("default_course_dir") or "~/Desktop"
-        output_dir = course_output(base_root, course_name, subfolder)
+        output_dir = existing_archive_output(args.existing_course_dir) if args.existing_course_dir else course_output(base_root, course_name, subfolder)
         print(f"\n📂 Non-Interactive Mode | Target: {output_dir}")
         if action == "1":
             run_full_scrape(course_url, output_dir, course_name, selected_categories=selected_categories, headless=args.headless)

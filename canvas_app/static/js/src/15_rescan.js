@@ -41,7 +41,7 @@ async function fetchRescanGeminiKeyStatus() {
 
 const RESCAN_STEPS = {
   organize: [
-    { step: 1, title: "Scan Desktop Directory", desc: "Analyzing existing files and hierarchy in ~/Desktop/[Course]/" },
+    { step: 1, title: "Scan Course Directory", desc: "Analyzing existing files and hierarchy in the selected course archive" },
     { step: 2, title: "AI Model Initialization", desc: "Setting up local Ollama or Gemini classification engine" },
     { step: 3, title: "File Classification & Sorter", desc: "Re-organizing files into Lectures & Resources vs. Work folders" },
     { step: 4, title: "Rebuild Blueprint & Index", desc: "Updating canvas_course.json and rebuilding search index" }
@@ -49,7 +49,7 @@ const RESCAN_STEPS = {
   gradescope: [
     { step: 1, title: "Gradescope Authentication", desc: "Verifying session credentials and launching browser" },
     { step: 2, title: "Fetch Submissions & Rubrics", desc: "Downloading latest graded work and feedback" },
-    { step: 3, title: "Organize Work Directory", desc: "Sorting new submissions into ~/Desktop/[Course]/[Course] Work/" },
+    { step: 3, title: "Organize Work Directory", desc: "Sorting new submissions into the selected course work folders" },
     { step: 4, title: "Update Course Data", desc: "Syncing gradescope metadata in local course blueprint" }
   ],
   rescrape: [
@@ -103,7 +103,7 @@ function renderRescanView() {
       if (container && rescanState.hardwareProfile) {
         container.innerHTML = `
           <div class="hardware-profile-banner">
-            <span class="hardware-banner-icon">${Icons.cpu || Icons.sparkles}</span>
+            <span class="hardware-banner-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</span>
             <div class="hardware-banner-text">
               <strong>Hardware Profile:</strong> ${escapeHtml(rescanState.hardwareProfile.chip || "Apple Silicon")} • ${rescanState.hardwareProfile.ram_gb || 16} GB RAM
               ${rescanState.hardwareProfile.is_apple_silicon && (rescanState.hardwareProfile.ram_gb >= 16) 
@@ -131,14 +131,17 @@ function renderRescanView() {
 
   const currentCourseObj = (state.courses || []).find(c => c.name === rescanState.courseName);
   const fileCount = currentCourseObj?.stats?.files || 0;
+  const courseLocation = typeof currentCourseObj?.path === "string" && currentCourseObj.path.trim()
+    ? currentCourseObj.path
+    : "Course location unavailable";
 
-  let opButtonText = "🔄 Run File Re-classification";
+  let opButtonText = "Run File Re-classification";
   let opButtonIcon = Icons.refreshCw || Icons.rocket;
   if (rescanState.operation === "gradescope") {
-    opButtonText = "🎓 Sync Gradescope Course";
+    opButtonText = "Sync Gradescope Course";
     opButtonIcon = Icons.badgeCheck || Icons.rocket;
   } else if (rescanState.operation === "rescrape") {
-    opButtonText = "🔁 Re-scrape Course Categories";
+    opButtonText = "Re-scrape Course Categories";
     opButtonIcon = Icons.rocket;
   }
 
@@ -186,10 +189,10 @@ function renderRescanView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
                 <div class="launcher-card-title-group">
-                  <div class="launcher-card-icon">${Icons.folders || Icons.folderOpen}</div>
+                  <div class="launcher-card-icon" aria-hidden="true">${Icons.folders || Icons.folderOpen}</div>
                   <div>
                     <h3 class="launcher-card-title">Select Target Course</h3>
-                    <p class="launcher-card-desc">Choose an existing course directory from your Desktop</p>
+                    <p class="launcher-card-desc">Choose an existing course from your configured archive locations</p>
                   </div>
                 </div>
               </div>
@@ -208,7 +211,7 @@ function renderRescanView() {
               </div>
 
               <div class="rescan-course-info-banner">
-                <span>📁 Location: <strong>~/Desktop/${escapeHtml(rescanState.courseName || "[Course]")}/</strong></span>
+                <span>📁 Location: <strong>${escapeHtml(courseLocation)}</strong></span>
                 <span>•</span>
                 <span>Indexed Files: <strong>${fileCount}</strong></span>
               </div>
@@ -216,8 +219,8 @@ function renderRescanView() {
 
             <div class="wizard-actions-bar single-action">
               <button type="button" class="btn-wizard-next" id="btn-rescan-stage-1-next">
-                <span>Continue to Maintenance Operation</span>
-                <span>→</span>
+                <span class="btn-label">Continue to Maintenance Operation</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowRight}</span>
               </button>
             </div>
           </div>
@@ -229,7 +232,7 @@ function renderRescanView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
                 <div class="launcher-card-title-group">
-                  <div class="launcher-card-icon">${Icons.settings || Icons.modules}</div>
+                  <div class="launcher-card-icon" aria-hidden="true">${Icons.settings || Icons.modules}</div>
                   <div>
                     <h3 class="launcher-card-title">Maintenance Operation</h3>
                     <p class="launcher-card-desc">Choose what action to perform on ${escapeHtml(rescanState.courseName)}</p>
@@ -240,7 +243,7 @@ function renderRescanView() {
               <div class="rescan-operations-grid">
                 <div class="rescan-op-card ${rescanState.operation === "organize" ? "selected" : ""}" data-op="organize">
                   <div class="rescan-op-card-header">
-                    <span class="rescan-op-icon">${Icons.sparkles || Icons.refreshCw}</span>
+                    <span class="rescan-op-icon" aria-hidden="true">${Icons.sparkles || Icons.refreshCw}</span>
                     <span class="rescan-op-title">Re-classify Files</span>
                   </div>
                   <p class="rescan-op-desc">
@@ -250,7 +253,7 @@ function renderRescanView() {
 
                 <div class="rescan-op-card ${rescanState.operation === "gradescope" ? "selected" : ""}" data-op="gradescope">
                   <div class="rescan-op-card-header">
-                    <span class="rescan-op-icon">${Icons.badgeCheck || Icons.check}</span>
+                    <span class="rescan-op-icon" aria-hidden="true">${Icons.badgeCheck || Icons.check}</span>
                     <span class="rescan-op-title">Sync Gradescope</span>
                   </div>
                   <p class="rescan-op-desc">
@@ -260,7 +263,7 @@ function renderRescanView() {
 
                 <div class="rescan-op-card ${rescanState.operation === "rescrape" ? "selected" : ""}" data-op="rescrape">
                   <div class="rescan-op-card-header">
-                    <span class="rescan-op-icon">${Icons.rocket || Icons.modules}</span>
+                    <span class="rescan-op-icon" aria-hidden="true">${Icons.rocket || Icons.modules}</span>
                     <span class="rescan-op-title">Re-scrape Categories</span>
                   </div>
                   <p class="rescan-op-desc">
@@ -312,11 +315,12 @@ function renderRescanView() {
 
             <div class="wizard-actions-bar">
               <button type="button" class="btn-wizard-back" id="btn-rescan-stage-2-back">
-                <span>← Back to Course Selection</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowLeft}</span>
+                <span class="btn-label">Back</span>
               </button>
               <button type="button" class="btn-wizard-next" id="btn-rescan-stage-2-next">
-                <span>${rescanState.operation === "gradescope" ? "Continue to Execution Controls" : "Continue to AI Classification"}</span>
-                <span>→</span>
+                <span class="btn-label">${rescanState.operation === "gradescope" ? "Continue to Execution Controls" : "Continue to AI Classification"}</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowRight}</span>
               </button>
             </div>
           </div>
@@ -329,17 +333,17 @@ function renderRescanView() {
               <div class="launcher-card">
                 <div class="launcher-card-header">
                   <div class="launcher-card-title-group">
-                    <div class="launcher-card-icon">${Icons.cpu || Icons.sparkles}</div>
+                    <div class="launcher-card-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</div>
                     <div>
                       <h3 class="launcher-card-title">AI Classification Engine</h3>
-                      <p class="launcher-card-desc">Engine used for organizing and naming files</p>
+                      <p class="launcher-card-desc">Method used to classify files into your folders</p>
                     </div>
                   </div>
                 </div>
 
                 <div id="rescan-hardware-badge-container">
                   <div class="hardware-profile-banner">
-                    <span class="hardware-banner-icon">${Icons.cpu || Icons.sparkles}</span>
+                    <span class="hardware-banner-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</span>
                     <div class="hardware-banner-text">
                       <strong>Hardware Profile:</strong> ${escapeHtml(rescanState.hardwareProfile?.chip || "Apple Silicon")} • ${rescanState.hardwareProfile?.ram_gb || 16} GB RAM
                     </div>
@@ -353,30 +357,34 @@ function renderRescanView() {
                       <span class="ai-engine-badge ai-badge-cloud">Cloud API</span>
                     </div>
                     <div class="ai-engine-desc">
-                      Google Gemini processes course excerpts and filenames in the cloud, including submitted coursework and rescans. Free-tier submissions may be used by Google to improve products and reviewed by humans.
+                      <p class="ai-engine-reliability">${escapeHtml(organizationMethodDescription("gemini"))}</p>
+                      Sends course excerpts and filenames to Google, including submitted work. Free-tier content may be used to improve products and reviewed by humans.
                     </div>
                   </div>
 
                   <div class="ai-engine-card ${rescanState.aiProvider === "ollama" ? "selected" : ""}" data-rescan-provider="ollama">
                     <div class="ai-engine-card-header">
                       <span class="ai-engine-name">Offline Ollama</span>
-                      <span class="ai-engine-badge ai-badge-local">Local GPU</span>
+                      <span class="ai-engine-badge ai-badge-local">On-device</span>
                     </div>
                     <div class="ai-engine-desc">
-                      Classification runs on this computer with Ollama. Course content is not sent to a cloud AI provider.
+                      <p class="ai-engine-reliability">${escapeHtml(organizationMethodDescription("ollama"))}</p>
+                      Course content stays on this computer.
                     </div>
                   </div>
 
                   <div class="ai-engine-card ${rescanState.aiProvider === "rules" ? "selected" : ""}" data-rescan-provider="rules">
                     <div class="ai-engine-card-header">
                       <span class="ai-engine-name">Keyword Heuristics</span>
-                      <span class="ai-engine-badge ai-badge-rules">Zero-LLM</span>
+                      <span class="ai-engine-badge ai-badge-rules">Local rules</span>
                     </div>
                     <div class="ai-engine-desc">
-                      Deterministic keyword patterns and course syllabus token rules without requiring AI models.
+                      ${escapeHtml(organizationMethodDescription("rules"))}
                     </div>
                   </div>
                 </div>
+
+                <p class="organization-review-note">${escapeHtml(organizationReviewNote())}</p>
 
                 ${rescanState.aiProvider === "gemini" ? `
                   ${rescanState.geminiConfigured ? `
@@ -384,16 +392,16 @@ function renderRescanView() {
                       <div style="display:flex; align-items:center; gap:10px;">
                         <span style="display:flex; color:#10B981; width:18px; height:18px; flex-shrink:0;">${Icons.check || "✓"}</span>
                         <div>
-                          <div style="font-size:13px; font-weight:700; color:var(--text-main);">Google AI Studio API Key Configured</div>
+                          <div style="font-size:13px; font-weight:700; color:var(--text-main);">Gemini API key configured</div>
                           <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px; display:flex; align-items:center; gap:8px;">
-                            <span>API key active in <code>config.json</code></span>
+                            <span>API key configured locally</span>
                             <span>•</span>
                             <span>⚡ <strong>${(state.settings?.geminiTier || rescanState.geminiTier || "paid") === "paid" ? "Paid Tier (Fast ~120 RPM)" : "Free Tier (Safe 10 RPM)"}</strong></span>
                           </div>
                         </div>
                       </div>
                       <button type="button" class="btn-launcher-secondary btn-open-gemini-settings">
-                        <span style="display:flex;width:14px;height:14px;">${Icons.settings || ""}</span>
+                        <span class="btn-icon" aria-hidden="true">${Icons.settings || ""}</span>
                         <span>Change in Settings</span>
                       </button>
                     </div>
@@ -452,7 +460,7 @@ function renderRescanView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
                 <div class="launcher-card-title-group">
-                  <div class="launcher-card-icon">${Icons.terminal || Icons.rocket}</div>
+                  <div class="launcher-card-icon" aria-hidden="true">${Icons.terminal || Icons.rocket}</div>
                   <div>
                     <h3 class="launcher-card-title">Execution Controls</h3>
                     <p class="launcher-card-desc">Review settings and run maintenance on ${escapeHtml(rescanState.courseName)}</p>
@@ -474,17 +482,18 @@ function renderRescanView() {
               <div class="rescan-course-info-banner" style="margin-top: 14px;">
                 <span>Operation: <strong>${escapeHtml(rescanState.operation === "organize" ? "Re-classify Files" : (rescanState.operation === "gradescope" ? "Sync Gradescope" : "Re-scrape Categories"))}</strong></span>
                 <span>•</span>
-                <span>Target: <strong>~/Desktop/${escapeHtml(rescanState.courseName)}/</strong></span>
+                <span>Target: <strong>${escapeHtml(courseLocation)}</strong></span>
               </div>
             </div>
 
             <div class="wizard-actions-bar">
               <button type="button" class="btn-wizard-back" id="btn-rescan-stage-3-back">
-                <span>← Back to Operation Choice</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowLeft}</span>
+                <span class="btn-label">Back</span>
               </button>
               <button type="button" class="btn-launcher-primary" id="btn-rescan-launch" ${rescanState.isIngesting ? "disabled" : ""}>
-                <span class="btn-icon">${opButtonIcon}</span>
-                <span>${rescanState.isIngesting ? "Operation Running..." : opButtonText}</span>
+                <span class="btn-icon" aria-hidden="true">${opButtonIcon}</span>
+                <span class="btn-label">${rescanState.isIngesting ? "Operation Running..." : opButtonText}</span>
               </button>
             </div>
           </div>
@@ -497,7 +506,7 @@ function renderRescanView() {
             <div class="horizontal-timeline-card">
               <div class="horizontal-timeline-header">
                 <div class="horizontal-timeline-title-area">
-                  <div class="launcher-card-icon" style="width:28px;height:28px;">${Icons.timeline || Icons.dashboard}</div>
+                  <div class="launcher-card-icon" aria-hidden="true" style="width:28px;height:28px;">${Icons.timeline || Icons.dashboard}</div>
                   <h3 class="horizontal-timeline-title">Operation Progress: ${escapeHtml(rescanState.operation === "organize" ? "Re-classifying Files" : (rescanState.operation === "gradescope" ? "Syncing Gradescope" : "Re-scraping Categories"))}</h3>
                 </div>
                 <span class="horizontal-timeline-badge">${rescanState.isIngesting ? `Step ${rescanState.activeStep} of ${totalSteps}` : (rescanState.finishedCourse ? "Complete" : "Standby")}</span>
@@ -546,7 +555,7 @@ function renderRescanView() {
                   <button type="button" class="terminal-btn-clear" id="btn-rescan-clear-logs" title="Clear console output">Clear</button>
                   ${rescanState.isIngesting ? `
                     <button type="button" class="terminal-btn-cancel" id="btn-rescan-cancel">
-                      <span style="display:flex;width:12px;height:12px;">${Icons.stopCircle || ""}</span>
+                      <span class="btn-icon" aria-hidden="true">${Icons.stopCircle}</span>
                       <span>Cancel</span>
                     </button>
                   ` : ""}
@@ -574,15 +583,16 @@ function renderRescanView() {
                 </div>
                 <div class="completion-actions">
                   <button type="button" class="btn-completion-view" id="btn-rescan-view-course">
-                    <span style="display:flex;width:14px;height:14px;">${Icons.canvas}</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.canvas}</span>
                     <span>View Course in App</span>
                   </button>
                   <button type="button" class="btn-completion-reveal" id="btn-rescan-reveal-finder">
-                    <span style="display:flex;width:14px;height:14px;">${Icons.macFinder}</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.macFinder}</span>
                     <span>Show in Folder</span>
                   </button>
                   <button type="button" class="btn-launcher-secondary" id="btn-rescan-another" style="margin-left: auto;">
-                    <span>➕ Rescan Another Course</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.plus}</span>
+                    <span>Rescan Another Course</span>
                   </button>
                 </div>
               </div>
@@ -596,6 +606,9 @@ function renderRescanView() {
 
   els.viewRescan.innerHTML = html;
   wireRescanEventListeners();
+  if (typeof initAllCustomDropdowns === "function") {
+    initAllCustomDropdowns(els.viewRescan);
+  }
   scrollRescanTerminalToBottom();
 }
 
@@ -883,11 +896,12 @@ async function startRescan() {
   appendRescanTerminalLog(`Starting operation '${rescanState.operation}' for '${rescanState.courseName}'...`, "info");
   renderRescanView();
 
-  const matchedCourse = (state.courseList || []).find(c => c.name === rescanState.courseName || c.folder_name === rescanState.courseName);
+  const matchedCourse = (state.courses || []).find(c => c.name === rescanState.courseName);
   const resolvedUrl = matchedCourse?.course_url || "";
 
   const payload = {
     course_name: rescanState.courseName,
+    existing_course: rescanState.courseName,
     course_url: resolvedUrl,
     ai_provider: rescanState.aiProvider,
     gemini_tier: rescanState.geminiTier,

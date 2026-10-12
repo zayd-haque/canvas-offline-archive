@@ -1,3 +1,26 @@
+// [Codex] Shared comparative guidance; development evidence is not a course accuracy guarantee.
+function organizationMethodDescription(provider) {
+  const descriptions = {
+    gemini: "Cloud AI for unfamiliar wording and custom folders. Most consistent in our synthetic tests; review folder choices.",
+    ollama: "Local AI; requires Ollama and a model. Tested with qwen2.5:7b. Ambiguous files may be misplaced.",
+    rules: "Fast local rules using filenames, text and folder labels. Unfamiliar wording may need custom mappings."
+  };
+  return descriptions[provider] || "";
+}
+
+function organizationReviewNote() {
+  return "Synthetic test results are not a guarantee for your course. Review organized files.";
+}
+
+function renderOrganizationMethodComparison() {
+  return `<dl class="organization-method-list">${[
+    ["gemini", "Gemini"], ["ollama", "Ollama"], ["rules", "Keyword Heuristics"]
+  ].map(([provider, label]) => `<dt>${label}</dt><dd>${escapeHtml(organizationMethodDescription(provider))}</dd>`).join("")}</dl>
+    <p class="organization-review-note">${escapeHtml(organizationReviewNote())}</p>
+    <p class="organization-review-note">Accuracy on independently human-reviewed courses has not been established.</p>
+    <p class="organization-review-note">Gemini sends classification content to Google. Ollama and Keyword Heuristics classify locally. The Gemini privacy guidance above still applies.</p>`;
+}
+
 function initSettings() {
   try {
     const saved = localStorage.getItem("canvas_course_settings");
@@ -11,6 +34,7 @@ function initSettings() {
   initExtendedSettings();
   applySettings(state.settings);
   loadHierarchySettings();
+  loadKeywordRules();
 }
 
 function applyTheme(themeVal) {
@@ -69,6 +93,23 @@ function applyGlobalFontScale(scaleVal) {
   }
 }
 
+function syncSettingsCategoriesUI() {
+  const s = state.settings;
+  const chosen = Array.isArray(s.ingestionCategories) ? s.ingestionCategories : [];
+  document.querySelectorAll("[data-settings-category]").forEach(el => {
+    const isChecked = chosen.includes(el.dataset.settingsCategory);
+    el.checked = isChecked;
+    const parent = el.closest(".settings-category-item");
+    if (parent) {
+      parent.classList.toggle("selected", isChecked);
+    }
+  });
+  const countBadge = document.getElementById("settings-categories-count");
+  if (countBadge && typeof LAUNCHER_CATEGORIES !== "undefined") {
+    countBadge.textContent = `${chosen.length} of ${LAUNCHER_CATEGORIES.length} Selected`;
+  }
+}
+
 function applySettings(s) {
   applyTheme(s.theme);
   applyAccent(s.accentColor);
@@ -78,6 +119,8 @@ function applySettings(s) {
 
 function syncSettingsUI() {
   const s = state.settings;
+  const methodComparison = document.getElementById("settings-organization-method-comparison");
+  if (methodComparison) methodComparison.innerHTML = renderOrganizationMethodComparison();
   const aiProv = document.getElementById("settings-ai-provider");
   if (aiProv) aiProv.value = s.aiProvider;
   const ollamaMod = document.getElementById("settings-ollama-model");
@@ -86,7 +129,7 @@ function syncSettingsUI() {
   if (headlessEl) headlessEl.checked = s.headless;
   const autoscrollEl = document.getElementById("settings-autoscroll");
   if (autoscrollEl) autoscrollEl.checked = s.terminalAutoscroll;
-  document.querySelectorAll("[data-settings-category]").forEach(el => { el.checked = (s.ingestionCategories || []).includes(el.dataset.settingsCategory); });
+  syncSettingsCategoriesUI();
 
   // Default action radio
   const rad = document.querySelector(`input[name="defaultAction"][value="${s.defaultAction}"]`);
@@ -158,6 +201,10 @@ function openSettingsModal(section = "general") {
   loadGeminiKeyStatus();
   loadDirectoriesSettings();
   loadHierarchySettings();
+  loadKeywordRules();
+  if (typeof initAllCustomDropdowns === "function" && els.settingsModal) {
+    initAllCustomDropdowns(els.settingsModal);
+  }
   refreshSettingsIndex();
   probeOllamaStatus();
   refreshCacheStatus();
@@ -271,7 +318,7 @@ async function probeOllamaStatus() {
       badge.textContent = "Offline";
       badge.style.background = "rgba(239, 68, 68, 0.2)";
       badge.style.color = "#EF4444";
-      text.textContent = "Ollama is not running. Add Course will use Gemini Cloud or Keyword rules.";
+      text.textContent = "Ollama is not running. Start Ollama with an installed model, or choose Gemini or Keyword Heuristics.";
     }
   } catch {
     badge.textContent = "Local Port 11434";
@@ -916,6 +963,7 @@ function syncHierarchyUI() {
   }
 
   renderHierarchyTreePreview();
+  populateRuleFolderDropdown();
 }
 
 function renderHierarchyTreePreview() {
@@ -1419,6 +1467,323 @@ async function resetHierarchySettingsAction() {
   }
 }
 
+// ==========================================================================
+// Custom Keyword Rules Configuration
+// ==========================================================================
+
+async function loadKeywordRules() {
+  try {
+    const res = await fetch("/api/settings/keyword-rules");
+    if (res.ok) {
+      const data = await res.json();
+      state.keywordRules = Array.isArray(data.rules) ? data.rules : [];
+    }
+  } catch {
+    state.keywordRules = state.keywordRules || [];
+  }
+  renderKeywordRules();
+  populateRuleFolderDropdown();
+}
+
+function populateRuleFolderDropdown() {
+  const select = document.getElementById("settings-new-rule-folder");
+  if (!select) return;
+  const currentVal = select.value;
+
+  const folders = new Set();
+  const h = state.settings?.hierarchy;
+  if (h?.customFolders && Array.isArray(h.customFolders)) {
+    h.customFolders.forEach(f => {
+      if (f.name) folders.add(f.name);
+    });
+  }
+  if (h?.mainFolders && Array.isArray(h.mainFolders)) {
+    h.mainFolders.forEach(f => {
+      if (f.name) folders.add(f.name);
+    });
+  }
+  if (state.keywordRules && Array.isArray(state.keywordRules)) {
+    state.keywordRules.forEach(r => {
+      if (r.folder) folders.add(r.folder);
+    });
+  }
+  if (folders.size === 0 && typeof DEFAULT_CUSTOM_FOLDERS !== "undefined") {
+    DEFAULT_CUSTOM_FOLDERS.forEach(f => {
+      if (f.name) folders.add(f.name);
+    });
+  }
+
+  let html = '<option value="" disabled selected>Select destination folder…</option>';
+  Array.from(folders).sort().forEach(folder => {
+    html += `<option value="${escapeHtml(folder)}">${escapeHtml(folder)}</option>`;
+  });
+  select.innerHTML = html;
+  if (currentVal && folders.has(currentVal)) {
+    select.value = currentVal;
+  }
+  if (typeof upgradeSelectToCustomDropdown === "function") {
+    upgradeSelectToCustomDropdown(select);
+  }
+  if (typeof syncCustomSelect === "function") {
+    syncCustomSelect(select);
+  }
+}
+
+let confirmingDeleteRuleIndex = null;
+let keywordRulesUndoStack = [];
+let keywordRulesUndoTimer = null;
+
+function showKeywordUndoBanner(label, previousRules) {
+  keywordRulesUndoStack.push({ label, rules: previousRules });
+  const banner = document.getElementById("keyword-rules-undo-banner");
+  const text = document.getElementById("keyword-rules-undo-text");
+  if (!banner || !text) return;
+  text.textContent = label;
+  banner.classList.remove("hidden");
+  if (keywordRulesUndoTimer) clearTimeout(keywordRulesUndoTimer);
+  keywordRulesUndoTimer = setTimeout(() => {
+    hideKeywordUndoBanner();
+  }, 12000);
+}
+
+function hideKeywordUndoBanner() {
+  const banner = document.getElementById("keyword-rules-undo-banner");
+  if (banner) banner.classList.add("hidden");
+  if (keywordRulesUndoTimer) {
+    clearTimeout(keywordRulesUndoTimer);
+    keywordRulesUndoTimer = null;
+  }
+}
+
+async function undoKeywordRuleAction() {
+  if (!keywordRulesUndoStack.length) return;
+  const lastAction = keywordRulesUndoStack.pop();
+  if (!lastAction || !Array.isArray(lastAction.rules)) return;
+  state.keywordRules = lastAction.rules;
+  confirmingDeleteRuleIndex = null;
+  hideKeywordUndoBanner();
+  await saveKeywordRules("Restored previous rules.");
+}
+
+function renderKeywordRules() {
+  const listEl = document.getElementById("settings-keyword-rules-list");
+  const badgeEl = document.getElementById("keyword-rules-count-badge");
+  const rules = state.keywordRules || [];
+
+  if (badgeEl) {
+    if (rules.length > 0) {
+      badgeEl.textContent = `${rules.length} rule${rules.length === 1 ? "" : "s"}`;
+      badgeEl.style.display = "inline-block";
+    } else {
+      badgeEl.style.display = "none";
+    }
+  }
+
+  if (!listEl) return;
+
+  if (!rules.length) {
+    listEl.innerHTML = `
+      <div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12.5px; border:1px dashed var(--border-color); border-radius:8px;">
+        No custom keyword rules defined. Map custom course vocabulary (e.g. sprints, case briefs) above to route files automatically.
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = rules.map((rule, idx) => {
+    const kws = Array.isArray(rule.keywords) ? rule.keywords : [];
+    const trashSvg = (typeof Icons !== "undefined" && Icons.trash)
+      ? Icons.trash
+      : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
+
+    const isConfirming = confirmingDeleteRuleIndex === idx;
+
+    const actionHtml = isConfirming
+      ? `
+        <div class="rule-delete-confirm-group">
+          <span class="rule-delete-confirm-label">Delete rule?</span>
+          <button type="button" class="btn-rule-confirm-yes" data-action="confirm-delete-rule" data-index="${idx}">Delete</button>
+          <button type="button" class="btn-rule-confirm-no" data-action="cancel-delete-rule" data-index="${idx}">Cancel</button>
+        </div>
+      `
+      : `
+        <button type="button" class="btn-rule-delete" data-action="request-delete-rule" data-index="${idx}" title="Delete keyword rule" aria-label="Delete rule for ${escapeHtml(rule.folder || '')}">
+          ${trashSvg}
+        </button>
+      `;
+
+    return `
+      <div class="keyword-rule-card">
+        <div class="keyword-rule-info">
+          <div class="keyword-rule-folder-header">
+            <span class="keyword-rule-folder-badge">📁 ${escapeHtml(rule.folder || "Unassigned")}</span>
+          </div>
+          <div class="keyword-chips-container">
+            ${kws.map((kw, kwIdx) => `
+              <span class="keyword-chip" data-rule-index="${idx}" data-kw-index="${kwIdx}">
+                <button type="button" class="keyword-chip-remove" data-action="remove-keyword" data-rule-index="${idx}" data-kw-index="${kwIdx}" title="Remove '${escapeHtml(kw)}'" aria-label="Remove keyword ${escapeHtml(kw)}">×</button>
+                <span class="keyword-chip-text">${escapeHtml(kw)}</span>
+              </span>
+            `).join("")}
+          </div>
+        </div>
+        ${actionHtml}
+      </div>
+    `;
+  }).join("");
+}
+
+async function addKeywordRuleAction() {
+  const kwInput = document.getElementById("settings-new-rule-keywords");
+  const folderSelect = document.getElementById("settings-new-rule-folder");
+  const statusEl = document.getElementById("settings-keyword-rules-status");
+
+  if (!kwInput || !folderSelect) return;
+
+  const rawKeywords = kwInput.value.trim();
+  const folder = folderSelect.value.trim();
+
+  if (!rawKeywords) {
+    if (statusEl) {
+      statusEl.textContent = "Please enter one or more comma-separated keywords.";
+      statusEl.style.color = "#EF4444";
+    }
+    kwInput.focus();
+    return;
+  }
+
+  if (!folder) {
+    if (statusEl) {
+      statusEl.textContent = "Please select a destination folder.";
+      statusEl.style.color = "#EF4444";
+    }
+    folderSelect.focus();
+    return;
+  }
+
+  const parsedKeywords = rawKeywords
+    .split(",")
+    .map(k => k.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!parsedKeywords.length) {
+    if (statusEl) {
+      statusEl.textContent = "Please enter valid keywords.";
+      statusEl.style.color = "#EF4444";
+    }
+    kwInput.focus();
+    return;
+  }
+
+  state.keywordRules = state.keywordRules || [];
+
+  // Check if a rule for this exact folder already exists
+  const existingIndex = state.keywordRules.findIndex(
+    r => (r.folder || "").toLowerCase() === folder.toLowerCase()
+  );
+
+  if (existingIndex >= 0) {
+    const existing = state.keywordRules[existingIndex];
+    const merged = Array.from(new Set([...(existing.keywords || []), ...parsedKeywords]));
+    state.keywordRules[existingIndex] = {
+      ...existing,
+      folder: folder,
+      keywords: merged,
+      override: true
+    };
+  } else {
+    state.keywordRules.push({
+      folder: folder,
+      keywords: Array.from(new Set(parsedKeywords)),
+      override: true
+    });
+  }
+
+  kwInput.value = "";
+  folderSelect.value = "";
+  if (typeof syncCustomSelect === "function") {
+    syncCustomSelect(folderSelect);
+  }
+  if (statusEl) {
+    statusEl.textContent = "Saving rule…";
+    statusEl.style.color = "";
+  }
+
+  await saveKeywordRules("Keyword rule added successfully.");
+}
+
+async function removeKeywordAction(ruleIdx, kwIdx) {
+  state.keywordRules = state.keywordRules || [];
+  if (ruleIdx < 0 || ruleIdx >= state.keywordRules.length) return;
+  const rule = state.keywordRules[ruleIdx];
+  if (!rule || !Array.isArray(rule.keywords) || kwIdx < 0 || kwIdx >= rule.keywords.length) return;
+
+  const previousSnapshot = JSON.parse(JSON.stringify(state.keywordRules));
+  const kw = rule.keywords[kwIdx];
+
+  if (rule.keywords.length <= 1) {
+    state.keywordRules.splice(ruleIdx, 1);
+    confirmingDeleteRuleIndex = null;
+    showKeywordUndoBanner(`Removed "${kw}" (rule for ${rule.folder} removed)`, previousSnapshot);
+    await saveKeywordRules(`Removed keyword "${kw}".`);
+  } else {
+    rule.keywords.splice(kwIdx, 1);
+    showKeywordUndoBanner(`Removed keyword "${kw}"`, previousSnapshot);
+    await saveKeywordRules(`Removed keyword "${kw}".`);
+  }
+}
+
+async function deleteKeywordRuleAction(idx) {
+  state.keywordRules = state.keywordRules || [];
+  if (idx >= 0 && idx < state.keywordRules.length) {
+    const previousSnapshot = JSON.parse(JSON.stringify(state.keywordRules));
+    const deletedRule = state.keywordRules[idx];
+    state.keywordRules.splice(idx, 1);
+    confirmingDeleteRuleIndex = null;
+    showKeywordUndoBanner(`Deleted rule for "${deletedRule.folder}"`, previousSnapshot);
+    await saveKeywordRules("Rule deleted.");
+  }
+}
+
+async function saveKeywordRules(successMessage = "Changes saved.") {
+  const statusEl = document.getElementById("settings-keyword-rules-status");
+  try {
+    const res = await fetch("/api/settings/keyword-rules", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rules: state.keywordRules })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.rules)) {
+        state.keywordRules = data.rules;
+      }
+      renderKeywordRules();
+      populateRuleFolderDropdown();
+      if (statusEl) {
+        statusEl.textContent = successMessage;
+        statusEl.style.color = "#10B981";
+        setTimeout(() => {
+          if (statusEl.textContent === successMessage) {
+            statusEl.textContent = "";
+          }
+        }, 3000);
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      if (statusEl) {
+        statusEl.textContent = err.detail || "Failed to save keyword rules.";
+        statusEl.style.color = "#EF4444";
+      }
+    }
+  } catch {
+    if (statusEl) {
+      statusEl.textContent = "Network error while saving keyword rules.";
+      statusEl.style.color = "#EF4444";
+    }
+  }
+}
+
 function initExtendedSettings() {
   const s = state.settings;
   if (!["gemini", "ollama", "rules"].includes(s.aiProvider)) s.aiProvider = "gemini";
@@ -1438,9 +1803,22 @@ function initExtendedSettings() {
   delete s.geminiApiKey;
   delete s.gemini_api_key;
   const categoriesContainer = document.getElementById("settings-categories");
-  if (categoriesContainer) {
-    categoriesContainer.innerHTML = LAUNCHER_CATEGORIES.map(c =>
-      `<label class="settings-check"><input type="checkbox" data-settings-category="${c.id}"> ${c.label}</label>`).join("");
+  if (categoriesContainer && typeof LAUNCHER_CATEGORIES !== "undefined") {
+    categoriesContainer.innerHTML = LAUNCHER_CATEGORIES.map(c => {
+      const iconSvg = (typeof c.icon === "function" ? c.icon() : "") || (typeof Icons !== "undefined" ? Icons.folderOpen : "");
+      const checkSvg = (typeof Icons !== "undefined" && Icons.check) ? Icons.check : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`;
+      return `
+        <label class="settings-category-item" data-category="${c.id}">
+          <input type="checkbox" data-settings-category="${c.id}" class="settings-category-checkbox">
+          <span class="settings-category-check-indicator">${checkSvg}</span>
+          <span class="settings-category-icon">${iconSvg}</span>
+          <div class="settings-category-label-group">
+            <span class="settings-category-name">${escapeHtml(c.label)}</span>
+            <span class="settings-category-sub">${escapeHtml(c.sub || "")}</span>
+          </div>
+        </label>
+      `;
+    }).join("");
   }
   const bind = (id, key, checkbox = false) => {
     const el = document.getElementById(id);
@@ -1519,16 +1897,50 @@ function initExtendedSettings() {
     cacheClearBtn.addEventListener("click", clearCacheAction);
   }
 
-  document.getElementById("settings-categories").addEventListener("change", e => {
-    const chosen = Array.from(document.querySelectorAll("[data-settings-category]:checked"), el => el.dataset.settingsCategory);
-    if (!chosen.length) {
-      e.target.checked = true;
-      document.getElementById("settings-launcher-status").textContent = "Keep at least one default category selected.";
-      return;
-    }
-    state.settings.ingestionCategories = chosen;
-    saveSettingsToStorage();
-  });
+  const settingsCategoriesEl = document.getElementById("settings-categories");
+  if (settingsCategoriesEl) {
+    settingsCategoriesEl.addEventListener("change", e => {
+      const chosen = Array.from(document.querySelectorAll("[data-settings-category]:checked"), el => el.dataset.settingsCategory);
+      if (!chosen.length) {
+        e.target.checked = true;
+        const statusEl = document.getElementById("settings-launcher-status");
+        if (statusEl) statusEl.textContent = "Keep at least one default category selected.";
+        syncSettingsCategoriesUI();
+        return;
+      }
+      state.settings.ingestionCategories = chosen;
+      saveSettingsToStorage();
+      syncSettingsCategoriesUI();
+    });
+  }
+
+  const btnSelectAll = document.getElementById("btn-settings-categories-all");
+  if (btnSelectAll && typeof LAUNCHER_CATEGORIES !== "undefined") {
+    btnSelectAll.addEventListener("click", () => {
+      state.settings.ingestionCategories = LAUNCHER_CATEGORIES.map(c => c.id);
+      saveSettingsToStorage();
+      syncSettingsCategoriesUI();
+      const statusEl = document.getElementById("settings-launcher-status");
+      if (statusEl) {
+        statusEl.textContent = "All categories selected.";
+        setTimeout(() => { if (statusEl.textContent === "All categories selected.") statusEl.textContent = ""; }, 2500);
+      }
+    });
+  }
+
+  const btnSelectNone = document.getElementById("btn-settings-categories-none");
+  if (btnSelectNone) {
+    btnSelectNone.addEventListener("click", () => {
+      state.settings.ingestionCategories = ["modules"];
+      saveSettingsToStorage();
+      syncSettingsCategoriesUI();
+      const statusEl = document.getElementById("settings-launcher-status");
+      if (statusEl) {
+        statusEl.textContent = "Reset to core Modules only.";
+        setTimeout(() => { if (statusEl.textContent === "Reset to core Modules only.") statusEl.textContent = ""; }, 2500);
+      }
+    });
+  }
   document.querySelectorAll("[data-settings-section]").forEach(button => button.addEventListener("click", () => {
     document.querySelectorAll("[data-settings-section]").forEach(b => {
       b.classList.toggle("active", b === button);
@@ -1546,6 +1958,8 @@ function initExtendedSettings() {
     e.target.textContent = input.type === "password" ? "Show" : "Hide";
     e.target.setAttribute("aria-pressed", String(input.type === "text"));
   });
+  // [Codex] Connect the explicit credential save action to its guarded writer.
+  document.getElementById("settings-key-save").addEventListener("click", saveGeminiKey);
   const btnIdxRefresh = document.getElementById("settings-index-refresh");
   if (btnIdxRefresh) btnIdxRefresh.addEventListener("click", () => refreshSettingsIndex());
   const btnIdxRebuild = document.getElementById("settings-index-rebuild");
@@ -1726,6 +2140,81 @@ function initExtendedSettings() {
 
   const btnResetHierarchy = document.getElementById("btn-reset-hierarchy");
   if (btnResetHierarchy) btnResetHierarchy.addEventListener("click", () => resetHierarchySettingsAction());
+
+  // Custom Keyword Rules listeners
+  const btnAddRule = document.getElementById("btn-add-keyword-rule");
+  if (btnAddRule) {
+    btnAddRule.addEventListener("click", () => addKeywordRuleAction());
+  }
+
+  const inputNewRuleKeywords = document.getElementById("settings-new-rule-keywords");
+  if (inputNewRuleKeywords) {
+    inputNewRuleKeywords.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addKeywordRuleAction();
+      }
+    });
+  }
+
+  const listRulesEl = document.getElementById("settings-keyword-rules-list");
+  if (listRulesEl) {
+    listRulesEl.addEventListener("click", (e) => {
+      // 1. Request rule deletion (prompts confirmation)
+      const requestDeleteBtn = e.target.closest('[data-action="request-delete-rule"]');
+      if (requestDeleteBtn) {
+        const idx = parseInt(requestDeleteBtn.dataset.index, 10);
+        if (!isNaN(idx)) {
+          confirmingDeleteRuleIndex = idx;
+          renderKeywordRules();
+        }
+        return;
+      }
+
+      // 2. Confirm rule deletion
+      const confirmDeleteBtn = e.target.closest('[data-action="confirm-delete-rule"]');
+      if (confirmDeleteBtn) {
+        const idx = parseInt(confirmDeleteBtn.dataset.index, 10);
+        if (!isNaN(idx)) {
+          deleteKeywordRuleAction(idx);
+        }
+        return;
+      }
+
+      // 3. Cancel rule deletion
+      const cancelDeleteBtn = e.target.closest('[data-action="cancel-delete-rule"]');
+      if (cancelDeleteBtn) {
+        confirmingDeleteRuleIndex = null;
+        renderKeywordRules();
+        return;
+      }
+
+      // 4. Remove individual keyword chip
+      const removeKwBtn = e.target.closest('[data-action="remove-keyword"]');
+      if (removeKwBtn) {
+        const ruleIdx = parseInt(removeKwBtn.dataset.ruleIndex, 10);
+        const kwIdx = parseInt(removeKwBtn.dataset.kwIndex, 10);
+        if (!isNaN(ruleIdx) && !isNaN(kwIdx)) {
+          removeKeywordAction(ruleIdx, kwIdx);
+        }
+        return;
+      }
+    });
+  }
+
+  const btnUndoKw = document.getElementById("btn-undo-keyword-action");
+  if (btnUndoKw) {
+    btnUndoKw.addEventListener("click", () => {
+      undoKeywordRuleAction();
+    });
+  }
+
+  const btnDismissUndo = document.getElementById("btn-dismiss-undo-banner");
+  if (btnDismissUndo) {
+    btnDismissUndo.addEventListener("click", () => {
+      hideKeywordUndoBanner();
+    });
+  }
 
   syncHierarchyUI();
 

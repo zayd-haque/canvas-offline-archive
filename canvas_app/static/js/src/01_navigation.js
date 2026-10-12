@@ -28,6 +28,12 @@ async function loadCourseList({ preserveView = false } = {}) {
     // [Codex] Preserve user selection across refreshes without course-specific defaults.
     const defaultCourse = state.courses.find(c => c.name === state.currentCourse) || state.courses[0];
     els.courseSelector.value = defaultCourse.name;
+    if (typeof upgradeSelectToCustomDropdown === "function" && els.courseSelector) {
+      upgradeSelectToCustomDropdown(els.courseSelector);
+    }
+    if (typeof syncCustomSelect === "function" && els.courseSelector) {
+      syncCustomSelect(els.courseSelector);
+    }
     await selectCourse(defaultCourse.name);
 
     if (preserveView) return;

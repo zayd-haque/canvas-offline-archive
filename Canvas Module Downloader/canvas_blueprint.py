@@ -232,6 +232,9 @@ class CourseBlueprint:
             course_url=data.get("course_url", ""),
             output_dir=os.path.dirname(filepath)
         )
+        # [Codex] Retain explicit academic term for historical exam organization.
+        if isinstance(data.get("term"), str):
+            bp.term = data["term"]
         bp.scraped_at = data.get("scraped_at", bp.scraped_at)
         bp.tabs = data.get("tabs", [])
         bp.modules = data.get("modules", [])

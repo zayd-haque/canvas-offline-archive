@@ -85,3 +85,9 @@ The automated fixture suite covers ingestion helpers, APIs, search, security bou
 [Share feedback](https://forms.gle/VAo7LTDTAcfoarT78) about setup, bugs, your experience, or ideas for improvements. No Google or GitHub account is required; contact details are optional. Responses are stored in Google Forms and visible to the project owner.
 
 Please omit passwords, API keys, grades, student names, private course content, and unredacted logs. You can also [open a public GitHub issue](https://github.com/zayd-haque/canvas-offline-archive/issues) for reproducible bugs.
+
+## Organization update v1.0.10 [Codex]
+
+Keyword Heuristics now uses filenames, bounded document excerpts, and folder descriptions, with custom keyword mappings for unfamiliar vocabulary. Ollama classification uses purpose-first prompts, constrained responses, and serialized inference. Gemini remains explicitly selected; provider failures do not silently switch methods. Rescan now uses the selected archive directory rather than guessing a Desktop destination.
+
+Recent held-out synthetic checks reached 100% for Keyword Heuristics, 96.7% for Ollama (`qwen2.5:7b`), and 90.8% for Gemini over 40 documents in three folder layouts. These are limited synthetic results, not a guarantee for real courses; independent human-reviewed course accuracy has not been established. Review ambiguous placements.

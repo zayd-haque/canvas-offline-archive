@@ -91,7 +91,7 @@ Do not write any introductory or conversational text. Output ONLY the Markdown d
     summary = ''
     try:
         from llm_client import query_llm
-        summary = query_llm(prompt, config, timeout=35)
+        summary = query_llm(prompt, config, timeout=120)
     except ProviderError:
         raise
     except Exception as e:

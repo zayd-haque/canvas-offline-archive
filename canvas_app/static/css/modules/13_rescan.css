@@ -118,14 +118,23 @@
   gap: 8px;
 }
 
+/* [Codex] Keep operation-card icons square and centered. */
 .rescan-op-icon {
-  width: 24px;
-  height: 24px;
-  display: flex;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  line-height: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--canvas-accent);
   flex-shrink: 0;
+}
+
+.rescan-op-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .rescan-op-title {

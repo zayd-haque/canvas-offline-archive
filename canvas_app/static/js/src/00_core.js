@@ -206,4 +206,282 @@ function normalizeDocPath(p) {
   return clean;
 }
 
-// Initialize App
+// ==========================================================================
+// Universal In-UI Custom Dropdown Engine
+// Upgrades native <select> elements into accessible in-DOM theme-styled dropdowns.
+// ==========================================================================
+
+function upgradeSelectToCustomDropdown(select) {
+  if (!select || !(select instanceof HTMLElement)) return null;
+  if (select.dataset.customDropdownEnhanced === "true") {
+    syncCustomSelect(select);
+    return select._customDropdownContainer || null;
+  }
+
+  // Mark as enhanced and hide native select visually
+  select.classList.add("custom-select-native");
+  select.setAttribute("tabindex", "-1");
+  select.setAttribute("aria-hidden", "true");
+  select.dataset.customDropdownEnhanced = "true";
+
+  // Create wrapper container
+  const container = document.createElement("div");
+  container.className = "custom-select-container";
+
+  // Transfer flex/sizing styles if explicitly set
+  if (select.style.flex) container.style.flex = select.style.flex;
+  if (select.style.width) container.style.width = select.style.width;
+  if (select.style.maxWidth) container.style.maxWidth = select.style.maxWidth;
+  if (select.style.minWidth) container.style.minWidth = select.style.minWidth;
+
+  // Insert container before select and nest select inside
+  select.parentNode.insertBefore(container, select);
+  container.appendChild(select);
+
+  // Trigger button
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "custom-select-trigger";
+  trigger.setAttribute("aria-haspopup", "listbox");
+  trigger.setAttribute("aria-expanded", "false");
+
+  const labelSpan = document.createElement("span");
+  labelSpan.className = "custom-select-label";
+
+  const chevronSpan = document.createElement("span");
+  chevronSpan.className = "custom-select-chevron";
+  chevronSpan.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+  trigger.appendChild(labelSpan);
+  trigger.appendChild(chevronSpan);
+  container.appendChild(trigger);
+
+  // Dropdown menu
+  const menu = document.createElement("div");
+  menu.className = "custom-select-menu hidden";
+  menu.setAttribute("role", "listbox");
+  container.appendChild(menu);
+
+  // Bind internal references
+  select._customDropdownContainer = container;
+  select._customDropdownTrigger = trigger;
+  select._customDropdownLabel = labelSpan;
+  select._customDropdownMenu = menu;
+
+  function toggleMenu(open) {
+    const isCurrentlyOpen = container.classList.contains("open");
+    const shouldOpen = typeof open === "boolean" ? open : !isCurrentlyOpen;
+
+    if (shouldOpen) {
+      // Close any other open dropdowns
+      document.querySelectorAll(".custom-select-container.open").forEach(c => {
+        if (c !== container) {
+          c.classList.remove("open", "open-upward");
+          const m = c.querySelector(".custom-select-menu");
+          if (m) m.classList.add("hidden");
+          const t = c.querySelector(".custom-select-trigger");
+          if (t) t.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      syncCustomSelect(select);
+      menu.classList.remove("hidden");
+      container.classList.add("open");
+      trigger.setAttribute("aria-expanded", "true");
+
+      // Auto-detect upward opening if near bottom of viewport or modal
+      const rect = trigger.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const modalBody = trigger.closest(".settings-modal-body, .launcher-content, .rescan-content");
+      let modalSpaceBelow = spaceBelow;
+      if (modalBody) {
+        const modalRect = modalBody.getBoundingClientRect();
+        modalSpaceBelow = modalRect.bottom - rect.bottom;
+      }
+      const menuHeight = 220;
+      if ((spaceBelow < menuHeight || modalSpaceBelow < 120) && rect.top > menuHeight) {
+        container.classList.add("open-upward");
+      } else {
+        container.classList.remove("open-upward");
+      }
+
+      // Scroll selected option into view
+      const selectedOpt = menu.querySelector(".custom-select-option.selected");
+      if (selectedOpt) {
+        selectedOpt.scrollIntoView({ block: "nearest" });
+      }
+    } else {
+      container.classList.remove("open", "open-upward");
+      menu.classList.add("hidden");
+      trigger.setAttribute("aria-expanded", "false");
+    }
+  }
+
+  trigger.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (select.disabled) return;
+    toggleMenu();
+  });
+
+  // Keyboard navigation on trigger
+  trigger.addEventListener("keydown", (e) => {
+    if (select.disabled) return;
+    if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!container.classList.contains("open")) {
+        toggleMenu(true);
+      } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        const options = Array.from(menu.querySelectorAll(".custom-select-option:not(.disabled)"));
+        if (!options.length) return;
+        const currentIdx = options.findIndex(o => o.classList.contains("focused") || o.classList.contains("selected"));
+        let nextIdx = e.key === "ArrowDown" ? currentIdx + 1 : currentIdx - 1;
+        if (nextIdx < 0) nextIdx = 0;
+        if (nextIdx >= options.length) nextIdx = options.length - 1;
+        options.forEach(o => o.classList.remove("focused"));
+        options[nextIdx].classList.add("focused");
+        options[nextIdx].scrollIntoView({ block: "nearest" });
+      } else if (e.key === "Enter" || e.key === " ") {
+        const focused = menu.querySelector(".custom-select-option.focused") || menu.querySelector(".custom-select-option.selected");
+        if (focused && !focused.classList.contains("disabled")) {
+          focused.click();
+        }
+      }
+    } else if (e.key === "Escape") {
+      toggleMenu(false);
+    }
+  });
+
+  // Observe programmatic DOM changes to <option> elements
+  const observer = new MutationObserver(() => {
+    syncCustomSelect(select);
+  });
+  observer.observe(select, { childList: true, subtree: true, attributes: true });
+
+  // Hook value setter on select instance for automatic sync
+  const origDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+  try {
+    Object.defineProperty(select, "value", {
+      get: function() {
+        return origDescriptor.get.call(this);
+      },
+      set: function(newVal) {
+        origDescriptor.set.call(this, newVal);
+        syncCustomSelect(this);
+      },
+      configurable: true
+    });
+  } catch (e) {}
+
+  select.addEventListener("change", () => {
+    syncCustomSelect(select);
+  });
+
+  syncCustomSelect(select);
+  return container;
+}
+
+function syncCustomSelect(select) {
+  if (!select || !select._customDropdownMenu) return;
+  const menu = select._customDropdownMenu;
+  const labelSpan = select._customDropdownLabel;
+  const trigger = select._customDropdownTrigger;
+  const container = select._customDropdownContainer;
+
+  if (select.disabled) {
+    trigger.disabled = true;
+    container.classList.add("disabled");
+  } else {
+    trigger.disabled = false;
+    container.classList.remove("disabled");
+  }
+
+  const options = Array.from(select.options);
+  const selectedIndex = select.selectedIndex;
+  const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : null;
+
+  if (selectedOption) {
+    labelSpan.textContent = selectedOption.textContent || selectedOption.label || "";
+    if (selectedOption.disabled || selectedOption.value === "") {
+      labelSpan.classList.add("is-placeholder");
+    } else {
+      labelSpan.classList.remove("is-placeholder");
+    }
+  } else {
+    labelSpan.textContent = select.getAttribute("placeholder") || "Select…";
+    labelSpan.classList.add("is-placeholder");
+  }
+
+  menu.innerHTML = "";
+  options.forEach((opt, idx) => {
+    const isSelected = idx === selectedIndex;
+    const isDisabled = opt.disabled;
+
+    const optDiv = document.createElement("div");
+    optDiv.className = `custom-select-option ${isSelected ? "selected" : ""} ${isDisabled ? "disabled" : ""}`;
+    optDiv.setAttribute("role", "option");
+    optDiv.setAttribute("aria-selected", String(isSelected));
+    optDiv.dataset.value = opt.value;
+    optDiv.dataset.index = idx;
+
+    const textSpan = document.createElement("span");
+    textSpan.className = "custom-select-option-text";
+    textSpan.textContent = opt.textContent || opt.label || "";
+
+    const checkSpan = document.createElement("span");
+    checkSpan.className = "custom-select-option-check";
+    checkSpan.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+    optDiv.appendChild(textSpan);
+    optDiv.appendChild(checkSpan);
+
+    optDiv.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (isDisabled) return;
+      select.value = opt.value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      select.dispatchEvent(new Event("input", { bubbles: true }));
+      syncCustomSelect(select);
+
+      container.classList.remove("open", "open-upward");
+      menu.classList.add("hidden");
+      trigger.setAttribute("aria-expanded", "false");
+      trigger.focus();
+    });
+
+    menu.appendChild(optDiv);
+  });
+}
+
+function initAllCustomDropdowns(root = document) {
+  if (!root || !root.querySelectorAll) return;
+  const selects = root.querySelectorAll("select:not(.custom-select-native)");
+  selects.forEach(sel => {
+    upgradeSelectToCustomDropdown(sel);
+  });
+}
+
+// Global outside click and Escape listener to dismiss open custom dropdowns
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".custom-select-container")) {
+    document.querySelectorAll(".custom-select-container.open").forEach(c => {
+      c.classList.remove("open", "open-upward");
+      const m = c.querySelector(".custom-select-menu");
+      if (m) m.classList.add("hidden");
+      const t = c.querySelector(".custom-select-trigger");
+      if (t) t.setAttribute("aria-expanded", "false");
+    });
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".custom-select-container.open").forEach(c => {
+      c.classList.remove("open", "open-upward");
+      const m = c.querySelector(".custom-select-menu");
+      if (m) m.classList.add("hidden");
+      const t = c.querySelector(".custom-select-trigger");
+      if (t) t.setAttribute("aria-expanded", "false");
+    });
+  }
+});

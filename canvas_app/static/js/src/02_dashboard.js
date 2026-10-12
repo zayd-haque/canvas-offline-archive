@@ -711,7 +711,7 @@ function renderSidebar() {
     const item = document.createElement("a");
     item.className = `course-sidebar-item ${state.activeCanvasTab === t.id ? "active" : ""}`;
     item.innerHTML = `
-      <span class="item-icon">${t.icon}</span>
+      <span class="item-icon" aria-hidden="true">${t.icon}</span>
       <span>${t.label}</span>
       ${t.count !== undefined ? `<span class="sidebar-badge">${t.count}</span>` : ""}
     `;

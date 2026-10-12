@@ -8,6 +8,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadDirectoriesSettings();
   setupIcons();
   setupEventListeners();
+  if (typeof initAllCustomDropdowns === "function") {
+    initAllCustomDropdowns();
+  }
   initOnboarding();
   // [Codex] Delegation supports rerendered buttons without inline script handlers.
   document.addEventListener("click", event => {
@@ -26,6 +29,8 @@ function setupIcons() {
   if (els.iconNavDashboard) els.iconNavDashboard.innerHTML = Icons.dashboard;
   if (els.iconNavLauncher) els.iconNavLauncher.innerHTML = Icons.plusCircle;
   if (els.iconNavRescan) els.iconNavRescan.innerHTML = Icons.refreshCw;
+  const icNavOnboarding = document.getElementById("icon-nav-onboarding");
+  if (icNavOnboarding) icNavOnboarding.innerHTML = Icons.quizzes;
   const icNavCanvas = document.getElementById("icon-nav-canvas");
   if (icNavCanvas) icNavCanvas.innerHTML = Icons.home;
   const icNavTimeline = document.getElementById("icon-nav-timeline");

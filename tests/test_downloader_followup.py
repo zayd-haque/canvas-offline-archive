@@ -115,11 +115,12 @@ class DownloaderFollowupTests(unittest.TestCase):
     def test_reclassification_keeps_each_run_manifest_and_original(self):
         # Load only the function: importing the CLI would start caffeinate.
         tree = ast.parse((SOURCE / 'main.py').read_text(encoding='utf-8'))
-        function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'run_local_reclassify')
-        namespace = {'os': os, 'CONFIG_PATH': 'unused-synthetic-config'}
-        for name in ('resolve_course_root', 'validate_tree', 'contained_path', 'unique_destination', 'atomic_json', 'move_unique'):
+        functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)
+                     and node.name in {'run_local_reclassify', 'is_generated_reclassification_report'}]
+        namespace = {'os': os, 're': __import__('re'), 'CONFIG_PATH': 'unused-synthetic-config'}
+        for name in ('resolve_course_root', 'validate_tree', 'contained_path', 'unique_destination', 'atomic_json', 'move_unique', 'validate_component'):
             namespace[name] = getattr(safety, name)
-        exec(compile(ast.Module(body=[function], type_ignores=[]), 'main.py', 'exec'), namespace)
+        exec(compile(ast.Module(body=functions, type_ignores=[]), 'main.py', 'exec'), namespace)
         class Blueprint:
             file_path_map = {}
             def scan_course_directory(self, *args):

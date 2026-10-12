@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="/static/js/auth.js?v=71"></script>
   <title>Canvas Course Offline Archive</title>
-  <link rel="stylesheet" href="/static/css/canvas.css?v=61ca53b5b374">
+  <link rel="stylesheet" href="/static/css/canvas.css?v=acae6ad2b6f8">
 
 </head>
 <body>
@@ -21,38 +21,38 @@
       </div>
       <div class="global-nav-links">
         <div class="global-nav-item active" data-view="dashboard" id="nav-btn-dashboard" title="Courses Dashboard">
-          <span class="nav-icon" id="icon-nav-dashboard"></span>
+          <span class="nav-icon" id="icon-nav-dashboard" aria-hidden="true"></span>
           <span>Dashboard</span>
         </div>
         <div class="global-nav-item" data-view="canvas" id="nav-btn-canvas" title="Canvas LMS View">
-          <span class="nav-icon" id="icon-nav-canvas"></span>
+          <span class="nav-icon" id="icon-nav-canvas" aria-hidden="true"></span>
           <span>Courses</span>
         </div>
         <div class="global-nav-item" data-view="timeline" id="nav-btn-timeline" title="Quarter Timeline">
-          <span class="nav-icon" id="icon-nav-timeline"></span>
+          <span class="nav-icon" id="icon-nav-timeline" aria-hidden="true"></span>
           <span>Timeline</span>
         </div>
         <div class="global-nav-item" data-view="folders" id="nav-btn-folders" title="Desktop Folders">
-          <span class="nav-icon" id="icon-nav-folders"></span>
+          <span class="nav-icon" id="icon-nav-folders" aria-hidden="true"></span>
           <span>Folders</span>
         </div>
         <div class="global-nav-item" data-view="launcher" id="nav-btn-launcher" title="Add Course">
-          <span class="nav-icon" id="icon-nav-launcher"></span>
+          <span class="nav-icon" id="icon-nav-launcher" aria-hidden="true"></span>
           <span>Add Course</span>
         </div>
         <div class="global-nav-item" data-view="rescan" id="nav-btn-rescan" title="Rescan & Maintain Course">
-          <span class="nav-icon" id="icon-nav-rescan"></span>
+          <span class="nav-icon" id="icon-nav-rescan" aria-hidden="true"></span>
           <span>Rescan</span>
         </div>
       </div>
 
       <div class="global-nav-bottom">
         <button class="global-nav-item onboarding-nav-button" id="nav-btn-onboarding" type="button" title="Open setup guide">
-          <span class="nav-icon" aria-hidden="true">?</span>
+          <span class="nav-icon" id="icon-nav-onboarding" aria-hidden="true"></span>
           <span>Setup Guide</span>
         </button>
         <div class="global-nav-item" id="nav-btn-settings" title="Settings & Preferences">
-          <span class="nav-icon" id="icon-nav-settings"></span>
+          <span class="nav-icon" id="icon-nav-settings" aria-hidden="true"></span>
           <span>Settings</span>
         </div>
       </div>
@@ -371,7 +371,7 @@
         <div data-settings-panel="ingestion" class="settings-panel hidden">
           <section class="settings-section">
             <h3 class="settings-title">Gemini API key & Rate Tier</h3>
-            <p class="settings-desc">The key is stored locally in downloader configuration, never in browser storage. Gemini requests still send selected course content to Google.</p>
+            <p class="settings-desc">The key is stored locally in a separate credentials file, never in browser storage. Gemini requests still send selected course content to Google.</p>
             <p id="settings-key-status" class="settings-status" role="status">Checking configuration…</p>
             <label class="settings-label" for="settings-gemini-key">New API key</label>
             <div class="settings-input-row">
@@ -415,6 +415,10 @@
             <select id="settings-ai-provider" class="settings-input">
               <option value="gemini">Gemini — cloud API</option><option value="ollama">Ollama — on-device</option><option value="rules">Keyword rules — no AI</option>
             </select>
+            <details class="organization-method-guide">
+              <summary>Compare organization methods</summary>
+              <div id="settings-organization-method-comparison"></div>
+            </details>
             <label class="settings-label" for="settings-ollama-model">Local Ollama model</label>
             <select id="settings-ollama-model" class="settings-input"><option value="qwen2.5:7b">qwen2.5:7b</option><option value="qwen2.5:3b">qwen2.5:3b</option><option value="llama3.2">llama3.2</option><option value="mistral">mistral</option></select>
             <div id="settings-ollama-card" style="margin-top: 12px; margin-bottom: 14px;">
@@ -426,9 +430,23 @@
             </div>
             <label class="settings-check"><input type="checkbox" id="settings-headless"> Run the browser in the background</label>
             <label class="settings-check"><input type="checkbox" id="settings-autoscroll"> Automatically scroll to new console messages</label>
-            <fieldset class="settings-category-fieldset"><legend>Default course categories</legend><div id="settings-categories" class="settings-category-grid"></div></fieldset>
-            <button type="button" id="settings-apply-launcher" class="settings-button">Apply to launcher</button>
-            <p id="settings-launcher-status" class="settings-status" role="status"></p>
+            <div class="settings-categories-card">
+              <div class="settings-categories-header">
+                <div class="settings-categories-title-group">
+                  <span class="settings-categories-title">Default Course Categories</span>
+                  <span id="settings-categories-count" class="settings-categories-badge">11 of 11 Selected</span>
+                </div>
+                <div class="settings-categories-actions">
+                  <button type="button" id="btn-settings-categories-all" class="btn-cat-pill-action">Select All</button>
+                  <button type="button" id="btn-settings-categories-none" class="btn-cat-pill-action">Clear All</button>
+                </div>
+              </div>
+              <div id="settings-categories" class="settings-categories-grid"></div>
+            </div>
+            <div class="settings-launcher-apply-row">
+              <button type="button" id="settings-apply-launcher" class="settings-button secondary">Apply to launcher</button>
+              <p id="settings-launcher-status" class="settings-status" role="status"></p>
+            </div>
           </section>
         </div>
         <div data-settings-panel="directories" class="settings-panel hidden">
@@ -514,6 +532,45 @@
               <button type="button" id="btn-save-hierarchy" class="settings-button" style="padding: 6px 14px; font-size: 12.5px;">Save Hierarchy Template</button>
               <button type="button" id="btn-reset-hierarchy" class="settings-button secondary" style="padding: 6px 14px; font-size: 12.5px;">Reset to Standard</button>
               <span id="settings-hierarchy-status" class="settings-status" style="margin-left: 10px; font-size: 12px;"></span>
+            </div>
+          </section>
+
+          <!-- Section 3: Custom Keyword Rules -->
+          <section class="settings-section" id="section-keyword-rules">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 class="settings-title" style="margin-bottom:0;">Custom Keyword Rules</h3>
+              <span id="keyword-rules-count-badge" class="directory-tag tag-search" style="font-size:11px; padding:3px 8px; display:none;">0 rules</span>
+            </div>
+            <p class="settings-desc">Map custom course vocabulary (e.g. 'sprints', 'case briefs') to specific folders.</p>
+
+            <!-- Inline Undo Banner for Accidental Deletion -->
+            <div id="keyword-rules-undo-banner" class="keyword-rules-undo-banner hidden" role="status" aria-live="polite">
+              <div class="keyword-rules-undo-content">
+                <span class="keyword-rules-undo-icon">↺</span>
+                <span id="keyword-rules-undo-text" class="keyword-rules-undo-text">Action completed.</span>
+              </div>
+              <div class="keyword-rules-undo-actions">
+                <button type="button" id="btn-undo-keyword-action" class="btn-undo-action">Undo</button>
+                <button type="button" id="btn-dismiss-undo-banner" class="btn-dismiss-undo" title="Dismiss" aria-label="Dismiss">×</button>
+              </div>
+            </div>
+
+            <div id="settings-keyword-rules-list" class="keyword-rules-list">
+              <!-- Populated dynamically by renderKeywordRules() -->
+            </div>
+
+            <div class="keyword-rule-add-form" style="margin-top: 14px;">
+              <label class="settings-label" for="settings-new-rule-keywords" style="display:block; margin-bottom:6px;">Add Keyword Rule</label>
+              <div class="settings-input-row" style="display:flex; gap:8px; align-items:center;">
+                <input id="settings-new-rule-keywords" type="text" spellcheck="false" placeholder="Keywords (e.g. sprints, sprint review)" class="settings-input" style="flex:1 1 0%; min-width:0; height:38px; box-sizing:border-box;">
+                <div style="flex:1 1 0%; min-width:0; box-sizing:border-box;">
+                  <select id="settings-new-rule-folder" class="settings-select" style="width:100%;">
+                    <option value="" disabled selected>Select destination folder…</option>
+                  </select>
+                </div>
+                <button type="button" id="btn-add-keyword-rule" class="btn-add-root-action" style="flex-shrink:0; height:38px;">Add Rule</button>
+              </div>
+              <p id="settings-keyword-rules-status" class="settings-status" style="margin-top:6px; margin-bottom:0;"></p>
             </div>
           </section>
         </div>
@@ -615,8 +672,8 @@
   </div>
   <button type="button" id="onboarding-resume" class="onboarding-resume hidden">Resume setup guide</button>
 
-  <script src="/static/js/icons.js?v=73"></script>
-  <script src="/static/js/app.js?v=b6e5d22aa1d4"></script>
+  <script src="/static/js/icons.js?v=74"></script>
+  <script src="/static/js/app.js?v=ef648aad9709"></script>
 
 </body>
 </html>

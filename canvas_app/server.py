@@ -26,7 +26,7 @@ from urllib.parse import quote
 
 import uuid
 import json
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Body
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse, StreamingResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -825,6 +825,8 @@ def api_get_course_timeline(
 
 # [Codex] Credential settings reuse the downloader's configuration without exposing keys.
 _GEMINI_CONFIG_PATH = Path(__file__).resolve().parent.parent / "Canvas Module Downloader" / "config.json"
+_SECRETS_DIR = Path(__file__).resolve().parent.parent / "Canvas Module Downloader" / ".secrets"
+_SECRETS_PATH = _SECRETS_DIR / "credentials.json"
 _gemini_config_lock = threading.Lock()
 
 
@@ -852,7 +854,16 @@ def _read_gemini_config():
 def get_gemini_key_status():
     with _gemini_config_lock:
         config, _ = _read_gemini_config()
-        key = config.get("gemini_api_key") or os.environ.get("GEMINI_API_KEY")
+        key = None
+        if _SECRETS_PATH.exists():
+            try:
+                secrets = json.loads(_SECRETS_PATH.read_text(encoding="utf-8"))
+                if isinstance(secrets, dict):
+                    key = secrets.get("gemini_api_key")
+            except Exception:
+                pass
+        if not key:
+            key = os.environ.get("GEMINI_API_KEY") or config.get("gemini_api_key")
         tier = config.get("gemini_tier", "paid")
         return {
             "configured": isinstance(key, str) and bool(key.strip()),
@@ -902,7 +913,7 @@ def _update_config_values(values):
 
 def _store_gemini_settings(key=None, tier=None):
     values = {}
-    if key is not None and str(key).strip():
+    if key is not None:
         values['gemini_api_key'] = str(key).strip()
     if tier is not None and str(tier).strip().lower() in ('free', 'paid'):
         values['gemini_tier'] = str(tier).strip().lower()
@@ -914,7 +925,36 @@ def _store_gemini_settings(key=None, tier=None):
 
 
 def _store_gemini_key(key):
-    return _store_gemini_settings(key=key)
+    import tempfile
+    cleaned_key = str(key).strip()
+
+    # Ensure config.json does not store the plaintext key
+    _store_gemini_settings(key="")
+
+    temporary = None
+    try:
+        _SECRETS_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            os.chmod(_SECRETS_DIR, 0o700)
+        except OSError:
+            pass
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=_SECRETS_DIR,
+                                         prefix='.credentials-', delete=False) as stream:
+            temporary = Path(stream.name)
+            os.chmod(temporary, 0o600)
+            json.dump({"gemini_api_key": cleaned_key}, stream, indent=2, ensure_ascii=False)
+            stream.write('\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, _SECRETS_PATH)
+        temporary = None
+    except OSError:
+        raise HTTPException(503, detail='Could not save credentials') from None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+    return {'configured': True}
 
 
 @app.put("/api/settings/gemini-key")
@@ -955,6 +995,51 @@ def _probe_ollama():
 @app.get("/api/settings/ollama-status")
 async def get_ollama_status():
     return await asyncio.to_thread(_probe_ollama)
+
+
+@app.get("/api/settings/keyword-rules")
+def get_keyword_rules():
+    with _gemini_config_lock:
+        config, _ = _read_gemini_config()
+        return {"rules": config.get("category_rules", [])}
+
+
+@app.put("/api/settings/keyword-rules")
+def update_keyword_rules(payload: dict = Body(...)):
+    if not isinstance(payload, dict) or "rules" not in payload:
+        raise HTTPException(400, detail="Payload must contain 'rules' list")
+    raw_rules = payload.get("rules")
+    if not isinstance(raw_rules, list):
+        raise HTTPException(400, detail="'rules' must be a list")
+
+    validated_rules = []
+    for idx, rule in enumerate(raw_rules):
+        if not isinstance(rule, dict):
+            raise HTTPException(400, detail=f"Rule at index {idx} must be an object")
+        folder = rule.get("folder")
+        if not isinstance(folder, str) or not folder.strip():
+            raise HTTPException(400, detail=f"Rule at index {idx} must have a non-empty 'folder' string")
+        folder = folder.strip()
+
+        raw_keywords = rule.get("keywords")
+        if not isinstance(raw_keywords, list) or not raw_keywords:
+            raise HTTPException(400, detail=f"Rule at index {idx} must have a non-empty 'keywords' list")
+
+        cleaned_keywords = []
+        for kw in raw_keywords:
+            if not isinstance(kw, str) or not kw.strip():
+                raise HTTPException(400, detail=f"Rule at index {idx} contains an empty keyword")
+            cleaned_keywords.append(kw.strip().lower())
+
+        clean_rule = dict(rule)
+        clean_rule["folder"] = folder
+        clean_rule["keywords"] = cleaned_keywords
+        if "override" in rule:
+            clean_rule["override"] = bool(rule["override"])
+        validated_rules.append(clean_rule)
+
+    _update_config_values({"category_rules": validated_rules})
+    return {"success": True, "rules": validated_rules}
 
 
 # [Codex] The private directory is created by previews.py for this server run.
@@ -1578,6 +1663,7 @@ class LauncherStartRequest(BaseModel):
     gradescope_url: Optional[str] = Field(default="", max_length=4096)
     mode: Literal["full", "organize_only", "gradescope_only"] = "full"
     output_dir: Optional[str] = Field(default=None, max_length=4096)
+    existing_course: Optional[str] = Field(default=None, max_length=240)
 
 
 _launcher_jobs: Dict[str, Dict[str, Any]] = {}
@@ -1691,8 +1777,15 @@ async def _run_launcher_body(job: dict, req: LauncherStartRequest):
     if req.course_url:
         cmd_args += ["--url", req.course_url]
 
+    # [Codex] Existing archives use their catalog root, never a guessed Desktop path.
+    existing_course_dir = job.get("existing_course_dir")
+    if existing_course_dir and not Path(existing_course_dir).is_dir():
+        raise ValueError("Selected course directory is no longer available")
     output_root = None
-    if req.output_dir and str(req.output_dir).strip():
+    if existing_course_dir:
+        cmd_args[cmd_args.index("--course") + 1] = Path(existing_course_dir).name
+        cmd_args += ["--existing-course-dir", existing_course_dir]
+    elif req.output_dir and str(req.output_dir).strip():
         output_root = str(Path(req.output_dir).expanduser().resolve())
     else:
         _, configured_default = _read_configured_directories()
@@ -1929,12 +2022,14 @@ async def _run_launcher_body(job: dict, req: LauncherStartRequest):
         return
 
     course_name = job["course_name"]
-    course_dir = None
+    if existing_course_dir and not Path(existing_course_dir).is_dir():
+        raise ValueError("Selected course directory is no longer available")
+    course_dir = existing_course_dir
     try:
         discovered = discover_courses()
         if isinstance(discovered, dict):
             info = discovered.get(course_name) or discovered.get(job["course_name"])
-            if info and info.get("path"):
+            if not course_dir and info and info.get("path"):
                 course_dir = str(Path(info["path"]).resolve())
     except Exception:
         pass
@@ -2089,9 +2184,17 @@ async def api_launcher_hardware_profile():
 async def api_launcher_start(req: LauncherStartRequest):
     """Launches an asynchronous course ingestion pipeline job."""
     cleaned_name = _validate_folder_component(req.course_name)
+    existing_course_dir = None
+    if req.existing_course:
+        # [Codex] Resolve a catalog identity rather than accepting a client filesystem path.
+        info = course_info(req.existing_course)
+        existing_path = Path(info["path"]).expanduser().resolve()
+        if not existing_path.is_dir():
+            raise HTTPException(404, detail="Selected course directory is no longer available")
+        existing_course_dir = str(existing_path)
     if req.mode == "full" and not req.course_url.strip():
         # Attempt to auto-resolve course_url from existing course blueprint on disk
-        candidate_paths = []
+        candidate_paths = [Path(existing_course_dir)] if existing_course_dir else []
         try:
             discovered = discover_courses()
             if isinstance(discovered, dict):
@@ -2153,7 +2256,6 @@ async def api_launcher_start(req: LauncherStartRequest):
     if req.gemini_tier:
         if req.gemini_tier not in ('free', 'paid'):
             raise HTTPException(400, detail='Invalid Gemini tier')
-        _store_gemini_settings(tier=req.gemini_tier)
 
     with _launcher_lock:
         active = [j for j in _launcher_jobs.values() if j.get('status') in ('running', 'pending')
@@ -2164,6 +2266,10 @@ async def api_launcher_start(req: LauncherStartRequest):
         # Browser authentication uses one persistent profile shared by all courses.
         if active:
             raise HTTPException(429, detail='Another pipeline is running; wait for it to finish')
+        # [Codex] Persist launcher settings only after this job is admitted.
+        # Hold admission while saving so rejected concurrent starts stay read-only.
+        if req.gemini_tier:
+            _store_gemini_settings(tier=req.gemini_tier)
         if len(_launcher_jobs) > 50:
             removable = [jid for jid, j in _launcher_jobs.items() if j.get("status") in ("done", "error", "cancelled")]
             for jid in removable[:20]:
@@ -2174,6 +2280,7 @@ async def api_launcher_start(req: LauncherStartRequest):
             "job_id": job_id,
             "course_name": cleaned_name,
             "mode": req.mode,
+            "existing_course_dir": existing_course_dir,
             "status": "running",
             "active_step": 1,
             "events": [],

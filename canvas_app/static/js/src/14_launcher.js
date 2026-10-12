@@ -116,7 +116,7 @@ function renderLauncherView() {
       if (container && launcherState.hardwareProfile) {
         container.innerHTML = `
           <div class="hardware-profile-banner">
-            <span class="hardware-banner-icon">${Icons.cpu || Icons.sparkles}</span>
+            <span class="hardware-banner-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</span>
             <div class="hardware-banner-text">
               <strong>Hardware Profile:</strong> ${escapeHtml(launcherState.hardwareProfile.chip || "Apple Silicon")} • ${launcherState.hardwareProfile.ram_gb || 16} GB RAM
               ${launcherState.hardwareProfile.is_apple_silicon && (launcherState.hardwareProfile.ram_gb >= 16) 
@@ -210,7 +210,7 @@ function renderLauncherView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
                 <div class="launcher-card-title-group">
-                  <div class="launcher-card-icon">${Icons.canvas}</div>
+                  <div class="launcher-card-icon" aria-hidden="true">${Icons.canvas}</div>
                   <div>
                     <h3 class="launcher-card-title">Course Identity & Desktop Hierarchy</h3>
                     <p class="launcher-card-desc">Target Canvas course URL and destination folder</p>
@@ -246,8 +246,8 @@ function renderLauncherView() {
 
             <div class="wizard-actions-bar single-action">
               <button type="button" class="btn-wizard-next" id="btn-wizard-stage-1-next">
-                <span>Continue to AI Organization</span>
-                <span>→</span>
+                <span class="btn-label">Continue to AI Organization</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowRight}</span>
               </button>
             </div>
           </div>
@@ -260,7 +260,7 @@ function renderLauncherView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
               <div class="launcher-card-title-group">
-                <div class="launcher-card-icon">${Icons.cpu || Icons.sparkles}</div>
+                <div class="launcher-card-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</div>
                 <div>
                   <h3 class="launcher-card-title">AI Organization Engine</h3>
                   <p class="launcher-card-desc">Automated file classification & subfolder clustering</p>
@@ -270,7 +270,7 @@ function renderLauncherView() {
 
             <div id="launcher-hardware-badge-container">
               <div class="hardware-profile-banner">
-                <span class="hardware-banner-icon">${Icons.cpu || Icons.sparkles}</span>
+                <span class="hardware-banner-icon" aria-hidden="true">${Icons.cpu || Icons.sparkles}</span>
                 <div class="hardware-banner-text">
                   <strong>Hardware Profile:</strong> ${escapeHtml(launcherState.hardwareProfile?.chip || "Apple Silicon")} • ${launcherState.hardwareProfile?.ram_gb || 16} GB RAM
                   ${launcherState.hardwareProfile?.is_apple_silicon && (launcherState.hardwareProfile?.ram_gb >= 16) 
@@ -287,30 +287,34 @@ function renderLauncherView() {
                   <span class="ai-engine-badge ai-badge-cloud">Cloud API</span>
                 </div>
                 <div class="ai-engine-desc">
-                  Google Gemini processes course excerpts and filenames in the cloud, including submitted coursework and rescans. Free-tier submissions may be used by Google to improve products and reviewed by humans.
+                  <p class="ai-engine-reliability">${escapeHtml(organizationMethodDescription("gemini"))}</p>
+                  Sends course excerpts and filenames to Google, including submitted work. Free-tier content may be used to improve products and reviewed by humans.
                 </div>
               </div>
 
               <div class="ai-engine-card ${launcherState.aiProvider === "ollama" ? "selected" : ""}" data-provider="ollama">
                 <div class="ai-engine-card-header">
                   <span class="ai-engine-name">Offline Ollama</span>
-                  <span class="ai-engine-badge ai-badge-local">Local GPU</span>
+                  <span class="ai-engine-badge ai-badge-local">On-device</span>
                 </div>
                 <div class="ai-engine-desc">
-                  Classification runs on this computer with Ollama. Course content is not sent to a cloud AI provider.
+                  <p class="ai-engine-reliability">${escapeHtml(organizationMethodDescription("ollama"))}</p>
+                  Course content stays on this computer.
                 </div>
               </div>
 
               <div class="ai-engine-card ${launcherState.aiProvider === "rules" ? "selected" : ""}" data-provider="rules">
                 <div class="ai-engine-card-header">
                   <span class="ai-engine-name">Keyword Heuristics</span>
-                  <span class="ai-engine-badge ai-badge-rules">Zero-LLM</span>
+                  <span class="ai-engine-badge ai-badge-rules">Local rules</span>
                 </div>
                 <div class="ai-engine-desc">
-                  Deterministic keyword patterns and course syllabus token rules without requiring any AI models.
+                  ${escapeHtml(organizationMethodDescription("rules"))}
                 </div>
               </div>
             </div>
+
+            <p class="organization-review-note">${escapeHtml(organizationReviewNote())}</p>
 
             ${launcherState.aiProvider === "gemini" ? `
               ${launcherState.geminiConfigured ? `
@@ -318,16 +322,16 @@ function renderLauncherView() {
                   <div style="display:flex; align-items:center; gap:10px;">
                     <span style="display:flex; color:#10B981; width:18px; height:18px; flex-shrink:0;">${Icons.check || "✓"}</span>
                     <div>
-                      <div style="font-size:13px; font-weight:700; color:var(--text-main);">Google AI Studio API Key Configured</div>
+                      <div style="font-size:13px; font-weight:700; color:var(--text-main);">Gemini API key configured</div>
                       <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px; display:flex; align-items:center; gap:8px;">
-                        <span>API key active in <code>config.json</code></span>
+                        <span>API key configured locally</span>
                         <span>•</span>
                         <span>⚡ <strong>${(state.settings?.geminiTier || launcherState.geminiTier || "paid") === "paid" ? "Paid Tier (Fast ~120 RPM)" : "Free Tier (Safe 10 RPM)"}</strong></span>
                       </div>
                     </div>
                   </div>
                   <button type="button" class="btn-launcher-secondary btn-open-gemini-settings">
-                    <span style="display:flex;width:14px;height:14px;">${Icons.settings || ""}</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.settings || ""}</span>
                     <span>Change in Settings</span>
                   </button>
                 </div>
@@ -386,11 +390,12 @@ function renderLauncherView() {
 
             <div class="wizard-actions-bar">
               <button type="button" class="btn-wizard-back" id="btn-wizard-stage-2-back">
-                <span>← Back to Course Info</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowLeft}</span>
+                <span class="btn-label">Back to Course Info</span>
               </button>
               <button type="button" class="btn-wizard-next" id="btn-wizard-stage-2-next">
-                <span>Continue to Category Scope</span>
-                <span>→</span>
+                <span class="btn-label">Continue to Category Scope</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowRight}</span>
               </button>
             </div>
           </div>
@@ -402,7 +407,7 @@ function renderLauncherView() {
             <div class="launcher-card">
               <div class="launcher-card-header">
                 <div class="launcher-card-title-group">
-                  <div class="launcher-card-icon">${Icons.modules}</div>
+                  <div class="launcher-card-icon" aria-hidden="true">${Icons.modules}</div>
                   <div>
                     <h3 class="launcher-card-title">Category Scope</h3>
                     <p class="launcher-card-desc">Select which Canvas LMS sections to crawl and download</p>
@@ -463,11 +468,12 @@ function renderLauncherView() {
 
             <div class="wizard-actions-bar">
               <button type="button" class="btn-wizard-back" id="btn-wizard-stage-3-back">
-                <span>← Back to AI Setup</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.arrowLeft}</span>
+                <span class="btn-label">Back to AI Setup</span>
               </button>
               <button type="button" class="btn-launcher-primary" id="btn-launch-full" ${launcherState.isIngesting ? "disabled" : ""}>
-                <span class="btn-icon">${Icons.rocket}</span>
-                <span>${launcherState.isIngesting ? "Pipeline Running..." : "🚀 Add Course (Full Pipeline)"}</span>
+                <span class="btn-icon" aria-hidden="true">${Icons.rocket}</span>
+                <span class="btn-label">${launcherState.isIngesting ? "Pipeline Running..." : "Add Course (Full Pipeline)"}</span>
               </button>
             </div>
           </div>
@@ -480,7 +486,7 @@ function renderLauncherView() {
             <div class="horizontal-timeline-card">
               <div class="horizontal-timeline-header">
                 <div class="horizontal-timeline-title-area">
-                  <div class="launcher-card-icon" style="width:28px;height:28px;">${Icons.timeline || Icons.dashboard}</div>
+                  <div class="launcher-card-icon" aria-hidden="true" style="width:28px;height:28px;">${Icons.timeline || Icons.dashboard}</div>
                   <h3 class="horizontal-timeline-title">Pipeline Progress: ${escapeHtml(activeTitle)}</h3>
                 </div>
                 <span class="horizontal-timeline-badge">${escapeHtml(badgeLabel)}</span>
@@ -529,7 +535,7 @@ function renderLauncherView() {
                   <button type="button" class="terminal-btn-clear" id="btn-clear-logs" title="Clear console output">Clear</button>
                   ${launcherState.isIngesting ? `
                     <button type="button" class="terminal-btn-cancel" id="btn-cancel-ingest">
-                      <span style="display:flex;width:12px;height:12px;">${Icons.stopCircle || ""}</span>
+                      <span class="btn-icon" aria-hidden="true">${Icons.stopCircle}</span>
                       <span>Cancel</span>
                     </button>
                   ` : ""}
@@ -557,15 +563,16 @@ function renderLauncherView() {
                 </div>
                 <div class="completion-actions">
                   <button type="button" class="btn-completion-view" id="btn-completion-view">
-                    <span style="display:flex;width:14px;height:14px;">${Icons.canvas}</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.canvas}</span>
                     <span>View Course in App</span>
                   </button>
                   <button type="button" class="btn-completion-reveal" id="btn-completion-reveal">
-                    <span style="display:flex;width:14px;height:14px;">${Icons.macFinder}</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.macFinder}</span>
                     <span>Show in Folder</span>
                   </button>
                   <button type="button" class="btn-launcher-secondary" id="btn-ingest-another" style="margin-left: auto;">
-                    <span>➕ Add Another Course</span>
+                    <span class="btn-icon" aria-hidden="true">${Icons.plus}</span>
+                    <span>Add Another Course</span>
                   </button>
                 </div>
               </div>
@@ -579,6 +586,9 @@ function renderLauncherView() {
 
   els.viewLauncher.innerHTML = html;
   wireLauncherEventListeners();
+  if (typeof initAllCustomDropdowns === "function") {
+    initAllCustomDropdowns(els.viewLauncher);
+  }
   scrollTerminalToBottom();
 }
 

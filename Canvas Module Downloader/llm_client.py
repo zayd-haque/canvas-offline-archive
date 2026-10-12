@@ -2,6 +2,7 @@
 # Unified LLM provider interface supporting Google Gemini Flash & local Ollama (Qwen 2.5).
 
 import os
+import json
 import time
 import requests
 import threading
@@ -11,10 +12,52 @@ import math
 _session = requests.Session()
 
 
+def get_gemini_api_key(config: dict = None) -> str:
+    """[Antigravity] Securely retrieves Gemini API key with strict isolation.
+    Priority order:
+    1. Environment variable GEMINI_API_KEY
+    2. Self-contained private credentials file inside app root (.secrets/credentials.json)
+    3. User profile credentials file (~/.canvas_credentials.json)
+    4. Provided configuration dictionary (fallback for existing configs)
+    """
+    key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if key:
+        return key
+
+    # 1. Check self-contained .secrets/credentials.json inside the app repository
+    repo_cred_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".secrets", "credentials.json")
+    if os.path.exists(repo_cred_file):
+        try:
+            with open(repo_cred_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                val = str(data.get("gemini_api_key", "")).strip()
+                if val:
+                    return val
+        except Exception:
+            pass
+
+    # 2. Check user profile credentials dotfile
+    cred_file = os.path.expanduser("~/.canvas_credentials.json")
+    if os.path.exists(cred_file):
+        try:
+            with open(cred_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                val = str(data.get("gemini_api_key", "")).strip()
+                if val:
+                    return val
+        except Exception:
+            pass
+
+    if isinstance(config, dict):
+        return str(config.get("gemini_api_key", "")).strip()
+    return ""
+
+
 # [Codex] Every Gemini attempt shares this process-wide gate, including retries
 # and calls from knowledge generation, classification, and folder sorting.
 _gemini_pace_lock = threading.Lock()
 _gemini_next_start = 0.0
+_ollama_call_lock = threading.Lock()
 
 
 def _wait_gemini_slot(config):
@@ -24,7 +67,7 @@ def _wait_gemini_slot(config):
 
     if is_paid:
         default_rpm = 120.0
-        max_rpm = 600.0
+        max_rpm = 4000.0 if config.get('allow_ultra_rpm') else 600.0
     else:
         default_rpm = 10.0
         max_rpm = 12.0  # Headroom below the user's 15 RPM quota.
@@ -271,15 +314,34 @@ def resolve_ollama_model(config: dict, ollama_url: str) -> str:
     return installed[0]
 
 
+def resolve_gemini_model(config: dict) -> str:
+    """[Antigravity] Resolves Gemini model according to user tier and configuration.
+    Defaults to gemini-3.5-flash-lite for optimal cost-efficiency and high throughput.
+    Explicit model in config['gemini_model'] is preserved unless set to auto.
+    """
+    if not isinstance(config, dict):
+        return "gemini-3.5-flash-lite"
+    configured = str(config.get("gemini_model", "")).strip()
+    if configured and configured.lower() != "auto":
+        return configured
+    return "gemini-3.5-flash-lite"
+
+
 class ProviderError(RuntimeError):
     """[Codex] Selected provider failed; never switch providers implicitly."""
 
 
-def query_llm(prompt: str, config: dict, timeout: int = 25, as_json: bool = False, num_ctx: int = None) -> str:
-    """Queries either Google Gemini API or local Ollama based on config['llm_provider']."""
+def query_llm(prompt: str, config: dict, timeout: int = 25, as_json: bool = False,
+              num_ctx: int = None, json_schema: dict = None,
+              deterministic: bool = False) -> str:
+    """Queries the selected provider; optional schema/sampling controls are Ollama-only.
+
+    [Codex] Classification can constrain its category response without limiting
+    the output length or sampling of knowledge generation and folder sorting.
+    """
     provider = config.get("llm_provider", "gemini").lower()
-    gemini_key = os.environ.get("GEMINI_API_KEY", "").strip() or config.get("gemini_api_key", "").strip()
-    gemini_model = config.get("gemini_model", "gemini-flash-lite-latest").strip()
+    gemini_key = get_gemini_api_key(config)
+    gemini_model = resolve_gemini_model(config)
     ollama_url = config.get("ollama_url", "http://localhost:11434/api/generate")
 
     if provider == 'rules':
@@ -399,11 +461,18 @@ def query_llm(prompt: str, config: dict, timeout: int = 25, as_json: bool = Fals
             "top_p": 0.9
         }
     }
-    if as_json:
+    if json_schema is not None:
+        payload["format"] = json_schema
+    elif as_json:
         payload["format"] = "json"
+    if deterministic:
+        payload["options"].update({"temperature": 0, "top_p": 1, "seed": 0})
+        if json_schema is not None:
+            payload["options"]["num_predict"] = 128
 
     try:
-        res = _session.post(ollama_url, json=payload, timeout=timeout)
+        with _ollama_call_lock:
+            res = _session.post(ollama_url, json=payload, timeout=timeout)
         if res.status_code == 200:
             text = res.json().get("response", "").strip()
             if text:
@@ -411,6 +480,6 @@ def query_llm(prompt: str, config: dict, timeout: int = 25, as_json: bool = Fals
         else:
             print(f"   ⚠️ Ollama HTTP {res.status_code}: request rejected.")
     except Exception as e:
-        print("   ⚠️ Local Ollama request failed.")
+        print(f"   ⚠️ Local Ollama request failed: {e}")
 
     raise ProviderError('Ollama request failed. No fallback was attempted.')

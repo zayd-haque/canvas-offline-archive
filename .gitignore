@@ -18,3 +18,7 @@ canvas_previews/
 canvas_course.json
 dist/
 .DS_Store
+
+# Private Gemini credentials introduced by the organization update.
+.secrets/
+.canvas_credentials.json
