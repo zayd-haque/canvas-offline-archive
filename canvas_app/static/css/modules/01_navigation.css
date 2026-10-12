@@ -143,13 +143,39 @@
   font-size: 15px;
   max-width: calc(50% - 215px);
   min-width: 0;
-  overflow: hidden;
+  /* [Codex] Popup menus must escape the breadcrumb; labels clip themselves. */
+  overflow: visible;
   z-index: 5;
+}
+
+/* The narrow header search row must not cover an open course popup. */
+.breadcrumb-area:has(.custom-select-container.open) {
+  z-index: 20;
 }
 
 .course-selector-wrapper {
   min-width: 0;
+  max-width: 220px;
   flex-shrink: 1;
+}
+
+/* [Codex] Bound the upgraded trigger and keep long course names readable in its popup. */
+.course-selector-wrapper .custom-select-container {
+  max-width: 220px;
+}
+
+.course-selector-wrapper .custom-select-menu {
+  width: 380px;
+  max-width: calc(100vw - var(--global-nav-width, 84px) - 48px);
+}
+
+.course-selector-wrapper .custom-select-option:is(.selected, .focused, :hover) {
+  color: var(--text-main);
+}
+
+.course-selector-wrapper .custom-select-option-text {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .course-selector-wrapper select {
