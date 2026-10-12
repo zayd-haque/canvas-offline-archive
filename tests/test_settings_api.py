@@ -1,6 +1,7 @@
 """[Codex] Credential settings preserve config and never expose secret values."""
 import tests
 import asyncio
+import os
 import json
 import tempfile
 import unittest
@@ -12,8 +13,32 @@ from canvas_app import server, archive
 from tests.test_launcher_api import asgi_request
 
 
-class GeminiSettingsTests(unittest.TestCase):
+class PrivatePermissionsMixin:
+    """[Codex] POSIX stat modes are not an NTFS ACL representation."""
+    def track_private_permissions(self):
+        patcher = patch.object(server.os, "chmod", wraps=os.chmod)
+        self.permission_calls = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def assert_private_permissions(self, path, mode):
+        path = Path(path)
+        if os.name != "nt":
+            self.assertEqual(path.stat().st_mode & 0o777, mode)
+            return
+        # Windows chmod supports its read-only attribute, not owner/group modes.
+        # Still require the writer's restrictive request before atomic publication.
+        prefix = ".credentials-" if path.name == "credentials.json" else ".settings-"
+        self.assertTrue(any(
+            requested_mode == mode and (
+                Path(target) == path or
+                (mode == 0o600 and Path(target).parent == path.parent and Path(target).name.startswith(prefix))
+            ) for (target, requested_mode), _ in self.permission_calls.call_args_list
+        ), "Writer did not request private permissions")
+
+
+class GeminiSettingsTests(PrivatePermissionsMixin, unittest.TestCase):
     def setUp(self):
+        self.track_private_permissions()
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / 'config.json'
@@ -50,11 +75,11 @@ class GeminiSettingsTests(unittest.TestCase):
         # credentials.json must store the key with 0o600 permissions
         self.assertTrue(self.secrets_path.exists())
         self.assertEqual(json.loads(self.secrets_path.read_text()), {'gemini_api_key': 'new-test-secret'})  # pragma: allowlist secret
-        self.assertEqual(self.secrets_path.stat().st_mode & 0o777, 0o600)
-        self.assertEqual(self.secrets_dir.stat().st_mode & 0o777, 0o700)
+        self.assert_private_permissions(self.secrets_path, 0o600)
+        self.assert_private_permissions(self.secrets_dir, 0o700)
         # config.json must NOT store the plaintext key
         self.assertEqual(json.loads(self.path.read_text()), {**self.original, 'gemini_api_key': ''})
-        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+        self.assert_private_permissions(self.path, 0o600)
         self.assertEqual(list(self.secrets_dir.glob('.credentials-*')), [])
 
     def test_invalid_requests_do_not_echo_or_change_secret(self):
@@ -108,7 +133,7 @@ class GeminiSettingsTests(unittest.TestCase):
         self.assertEqual(json.loads(body), {'configured': True, 'tier': 'free'})
         saved = json.loads(self.path.read_text())
         self.assertEqual(saved['gemini_tier'], 'free')
-        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+        self.assert_private_permissions(self.path, 0o600)
 
         # Update back to paid
         status, _, body = asyncio.run(asgi_request('/api/settings/gemini-tier', method='PUT', body={'tier': 'paid'}))
@@ -126,8 +151,9 @@ class GeminiSettingsTests(unittest.TestCase):
                 self.assertEqual(self.path.read_bytes(), original)
 
 
-class KeywordRulesSettingsTests(unittest.TestCase):
+class KeywordRulesSettingsTests(PrivatePermissionsMixin, unittest.TestCase):
     def setUp(self):
+        self.track_private_permissions()
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / 'config.json'
@@ -193,7 +219,7 @@ class KeywordRulesSettingsTests(unittest.TestCase):
         # Verify persisted configuration
         saved = json.loads(self.path.read_text())
         self.assertEqual(saved["category_rules"], expected)
-        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+        self.assert_private_permissions(self.path, 0o600)
 
     def test_put_keyword_rules_validation_errors(self):
         original = self.path.read_bytes()
@@ -287,8 +313,9 @@ class OllamaAndCacheSettingsTests(unittest.TestCase):
                 self.assertEqual(data["byte_size"], 0)
 
 
-class DirectorySettingsTests(unittest.TestCase):
+class DirectorySettingsTests(PrivatePermissionsMixin, unittest.TestCase):
     def setUp(self):
+        self.track_private_permissions()
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.config_path = Path(self.directory.name) / 'config.json'
@@ -336,7 +363,7 @@ class DirectorySettingsTests(unittest.TestCase):
         saved = json.loads(self.config_path.read_text())
         self.assertIn(expected_display, saved["search_dirs"])
         self.assertEqual(saved["default_course_dir"], expected_display)
-        self.assertEqual(self.config_path.stat().st_mode & 0o777, 0o600)
+        self.assert_private_permissions(self.config_path, 0o600)
 
     def test_put_directories_validation_rejects_missing_paths(self):
         nonexistent = str(Path(self.directory.name) / "does_not_exist_xyz")
@@ -738,8 +765,9 @@ class DirectorySettingsTests(unittest.TestCase):
         self.assertEqual(len(courses_direct_rev), 1)
 
 
-class HierarchySettingsTests(unittest.TestCase):
+class HierarchySettingsTests(PrivatePermissionsMixin, unittest.TestCase):
     def setUp(self):
+        self.track_private_permissions()
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.config_path = Path(self.directory.name) / 'config.json'
@@ -784,7 +812,7 @@ class HierarchySettingsTests(unittest.TestCase):
         saved = json.loads(self.config_path.read_text())
         self.assertEqual(saved["disk_hierarchy"]["preset"], "compact")
         self.assertEqual(saved["disk_hierarchy"]["lectures_folder"], "Lectures")
-        self.assertEqual(self.config_path.stat().st_mode & 0o777, 0o600)
+        self.assert_private_permissions(self.config_path, 0o600)
 
         # GET confirms persistence
         status_get, _, body_get = asyncio.run(asgi_request("/api/settings/hierarchy", method="GET"))
@@ -861,7 +889,7 @@ class HierarchySettingsTests(unittest.TestCase):
         self.assertEqual(saved["disk_hierarchy"]["main_folders"], main_folders)
         self.assertEqual(saved["disk_hierarchy"]["lectures_folder"], "{course} Course Materials")
         self.assertEqual(saved["disk_hierarchy"]["work_folder"], "{course} Submissions & Homework")
-        self.assertEqual(self.config_path.stat().st_mode & 0o777, 0o600)
+        self.assert_private_permissions(self.config_path, 0o600)
 
         # GET confirms persistence
         status_get, _, body_get = asyncio.run(asgi_request("/api/settings/hierarchy", method="GET"))

@@ -1694,6 +1694,19 @@ def synthesize_course_blueprint(
                 destinations.append(sub / "canvas_course.json")
                 break
         destinations.append(path_obj / f"{bp.course_name} Assignments_and_Milestones_Timeline.md")
+        if os.name == 'nt':
+            # [Codex] Synthesis uses the same validated Windows writer as capture.
+            # Preflight every destination before writing any generated file.
+            for destination in destinations:
+                contained_path(path_obj, destination.relative_to(path_obj))
+                if destination.exists() and not destination.is_file():
+                    raise ValueError('Blueprint destinations must be regular files')
+            for destination in destinations:
+                payload = (json.dumps(bp.to_dict(), indent=2)
+                           if destination.name == "canvas_course.json"
+                           else bp.generate_markdown_timeline())
+                _atomic_blueprint_write_windows(path_obj, destination, payload)
+            return bp
         with ExitStack() as stack:
             handles = []
             for dest in destinations:
