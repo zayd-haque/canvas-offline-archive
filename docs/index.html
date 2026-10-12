@@ -75,9 +75,10 @@
     .tag { display: inline-block; color: var(--accent-light); background: #18392e; border-radius: 6px; padding: 5px 8px; font-size: 11px; font-weight: 700; margin-bottom: 15px; }
     .boundary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
     .boundary p { margin-top: 8px; }
-    details { border-bottom: 1px solid #35363d; padding: 17px 0; }
-    summary { cursor: pointer; font-weight: 700; font-size: 16px; }
-    details p { color: #b8bac4; line-height: 1.65; max-width: 780px; }
+    #questions details { border-bottom: 1px solid #35363d; padding: 0; margin: 0; }
+    #questions summary { cursor: pointer; font-weight: 700; font-size: 16px; line-height: 1.4; padding: 12px 0; }
+    #questions details p { color: #b8bac4; font-size: 15px; line-height: 1.55; max-width: 780px; margin: 0 0 14px 20px; }
+    #questions details[open] summary { padding-bottom: 8px; }
     footer { border-top: 1px solid #292a30; padding: 30px 0 54px; color: #999ba5; font-size: 13px; }
     footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
     footer a { margin-left: 18px; }
