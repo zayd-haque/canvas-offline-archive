@@ -1,4 +1,5 @@
 """Real Windows release upgrade with disposable settings, course and environment."""
+import io
 import hashlib
 import json
 import os
@@ -21,7 +22,13 @@ def get(url):
 
 with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
     root = Path(temporary).resolve()
-    target_tag = json.loads(get(REPO + '/latest'))['tag_name']
+    target_release = json.loads(get(REPO + '/latest'))
+    target_tag = target_release['tag_name']
+    target_asset = next(a for a in target_release['assets'] if a['name']=='canvas-offline-archive-windows.zip')
+    target_bytes = get(target_asset['browser_download_url'])
+    assert hashlib.sha256(target_bytes).hexdigest() == target_asset['digest'].split(':')[1]
+    with zipfile.ZipFile(io.BytesIO(target_bytes)) as target_zip:
+        tidy_target = 'canvas-offline-archive/App Files/bootstrap_windows.py' in target_zip.namelist()
     metadata = json.loads(get(REPO + '/tags/v1.0.7'))
     asset = next(a for a in metadata['assets'] if a['name']=='canvas-offline-archive-windows.zip')
     archive = root / 'old.zip'; archive.write_bytes(get(asset['browser_download_url']))
@@ -87,11 +94,23 @@ with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
     launch_and_check('BEFORE_UPGRADE')
     env.pop('CANVAS_OFFLINE_NO_UPDATE')
     subprocess.run([os.environ['COMSPEC'],'/d','/c',str(cmd),'--setup-only'],cwd=app,env=env,check=True,timeout=600)
-    assert json.loads((app/'release_info.json').read_text())['tag']==target_tag
-    for path,expected in sentinels.items(): assert path.read_bytes()==expected,str(path)
-    assert marker.read_text()=='keep'
-    assert (app/'canvas_app'/'ocr_windows.py').is_file()
-    subprocess.run([str(python),'-c','from winrt.windows.media.ocr import OcrEngine; import pypdfium2'],check=True,env=env)
-    env['CANVAS_OFFLINE_NO_UPDATE']='1'
-    launch_and_check('AFTER_UPGRADE')
-    print('WINDOWS_V107_TO_'+target_tag+'_LAUNCHER_UPGRADE_SETTINGS_COURSE_VENV_PASS')
+    installed_tag = json.loads((app/'release_info.json').read_text())['tag']
+    if tidy_target and installed_tag != target_tag:
+        # Published legacy updaters cannot interpret the packaging-only folder.
+        # They must reject it without changing an existing installation; users
+        # adopt the new layout by extracting its ZIP alongside the old folder.
+        assert installed_tag == 'v1.0.7'
+        for path,expected in sentinels.items(): assert path.read_bytes()==expected,str(path)
+        assert marker.read_text()=='keep'
+        env['CANVAS_OFFLINE_NO_UPDATE']='1'
+        launch_and_check('LEGACY_LAYOUT_PRESERVED')
+        print('WINDOWS_LEGACY_LAYOUT_REFUSAL_SETTINGS_COURSE_VENV_PRESERVATION_PASS')
+    else:
+        assert json.loads((app/'release_info.json').read_text())['tag']==target_tag
+        for path,expected in sentinels.items(): assert path.read_bytes()==expected,str(path)
+        assert marker.read_text()=='keep'
+        assert (app/'canvas_app'/'ocr_windows.py').is_file()
+        subprocess.run([str(python),'-c','from winrt.windows.media.ocr import OcrEngine; import pypdfium2'],check=True,env=env)
+        env['CANVAS_OFFLINE_NO_UPDATE']='1'
+        launch_and_check('AFTER_UPGRADE')
+        print('WINDOWS_V107_TO_'+target_tag+'_LAUNCHER_UPGRADE_SETTINGS_COURSE_VENV_PASS')
