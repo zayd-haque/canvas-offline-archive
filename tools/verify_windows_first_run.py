@@ -101,7 +101,7 @@ def main() -> int:
                     subprocess.run([str(system / 'taskkill.exe'), '/PID', str(process.pid), '/T', '/F'],
                                    check=True, stdout=subprocess.DEVNULL, timeout=30)
                     process.wait(timeout=30)
-        if status != 0:
+        if status != 0 or not (root / 'browser-report.json').exists():
             print(log.read_text(encoding='utf-8', errors='replace')[-12000:])
         assert status == 0, 'Default Windows launcher failed; inspect fixture startup output.'
         report = json.loads((root / 'browser-report.json').read_text(encoding='utf-8'))
