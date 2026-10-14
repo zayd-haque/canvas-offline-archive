@@ -76,7 +76,7 @@ def main() -> int:
         env = os.environ.copy()
         for key in ('GEMINI_API_KEY', 'GOOGLE_API_KEY', 'PYTHONPATH', 'PYTHONHOME',
                     'CANVAS_CACHE_DIR', 'PLAYWRIGHT_BROWSERS_PATH', 'CANVAS_OFFLINE_NO_UPDATE',
-                    'OLLAMA_HOST'):
+                    'OLLAMA_HOST', 'PSModulePath', 'PSMODULEPATH'):
             env.pop(key, None)
         for name in ('AppData', 'LocalAppData', 'Temp'):
             (home / name).mkdir()

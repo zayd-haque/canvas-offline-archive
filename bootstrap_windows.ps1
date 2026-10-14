@@ -74,7 +74,12 @@ function Get-PrivatePython {
             }
         }
         if (-not $downloaded) { throw 'Python download did not complete.' }
-        $digest = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
+        # Use core .NET hashing so inherited PowerShell module paths cannot
+        # hide the Get-FileHash function on Windows PowerShell 5.1.
+        $stream = [IO.File]::OpenRead($archive)
+        $hasher = [Security.Cryptography.SHA256]::Create()
+        try { $digest = [BitConverter]::ToString($hasher.ComputeHash($stream)).Replace('-', '') }
+        finally { $stream.Dispose(); $hasher.Dispose() }
         if ($digest.ToLowerInvariant() -ne $release.Digest) {
             throw 'Python verification failed. Nothing was installed; retry the launcher.'
         }
