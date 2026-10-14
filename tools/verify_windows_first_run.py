@@ -80,7 +80,7 @@ def main() -> int:
             env.pop(key, None)
         for name in ('AppData', 'LocalAppData', 'Temp'):
             (home / name).mkdir()
-        system = Path(env['SystemRoot']) / 'System32'
+        system = Path(env['SYSTEMROOT']) / 'System32'
         env.update(HOME=str(home), USERPROFILE=str(home),
                    APPDATA=str(home / 'AppData'), LOCALAPPDATA=str(home / 'LocalAppData'),
                    TEMP=str(home / 'Temp'), TMP=str(home / 'Temp'),
@@ -101,6 +101,8 @@ def main() -> int:
                     subprocess.run([str(system / 'taskkill.exe'), '/PID', str(process.pid), '/T', '/F'],
                                    check=True, stdout=subprocess.DEVNULL, timeout=30)
                     process.wait(timeout=30)
+        if status != 0:
+            print(log.read_text(encoding='utf-8', errors='replace')[-12000:])
         assert status == 0, 'Default Windows launcher failed; inspect fixture startup output.'
         report = json.loads((root / 'browser-report.json').read_text(encoding='utf-8'))
         assert report['passed'], report
