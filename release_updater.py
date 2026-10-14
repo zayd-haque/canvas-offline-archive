@@ -37,7 +37,7 @@ ASSET_NAMES = {
 MAX_DOWNLOAD = 80 * 1024 * 1024
 MAX_EXTRACTED = 250 * 1024 * 1024
 ROOT_FILES = {
-    "bootstrap.sh", "bootstrap_windows.py", "release_updater.py",
+    "bootstrap.sh", "bootstrap_windows.py", "bootstrap_windows.ps1", "release_updater.py",
     "Open Canvas Offline Archive.command", "Open Canvas Offline Archive Windows.cmd",
     "requirements.txt", "INSTALL.md", "WINDOWS_INSTALL.md", "SECURITY.md",
     "docs/INSTALL.md", "docs/WINDOWS_INSTALL.md", "docs/SECURITY.md",

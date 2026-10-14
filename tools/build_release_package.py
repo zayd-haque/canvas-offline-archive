@@ -24,6 +24,7 @@ ROOT_FILES = {
     "bootstrap.sh",
     "Open Canvas Offline Archive.command",
     "bootstrap_windows.py",
+    "bootstrap_windows.ps1",
     "Open Canvas Offline Archive Windows.cmd",
     "requirements.txt",
     "release_updater.py",
@@ -77,7 +78,7 @@ def release_path(name: str, platform: str) -> str:
     """[Codex] Downloads show one launcher and one implementation folder."""
     launcher = ("Open Canvas Offline Archive.command" if platform == "macos"
                 else "Open Canvas Offline Archive Windows.cmd")
-    if platform == "macos" and name != launcher:
+    if name != launcher:
         return f"App Files/{name}"
     return name
 
