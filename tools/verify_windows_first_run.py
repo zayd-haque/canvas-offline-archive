@@ -110,8 +110,11 @@ def main() -> int:
         assert python.is_file()
         assert sorted(p.name for p in folder.iterdir()) == ['App Files', launcher.name]
         # Reuse the installation without a runtime download or Python on PATH.
+        watched = [app / '.python/python.exe', python, app / '.venv/.deps_installed']
+        before = {path: (path.stat().st_mtime_ns, path.stat().st_size) for path in watched}
         subprocess.run(command + ['--setup-only'], cwd=folder, env=env, check=True,
                        stdin=subprocess.DEVNULL, timeout=180)
+        assert before == {path: (path.stat().st_mtime_ns, path.stat().st_size) for path in watched}, 'Second launch unexpectedly reinstalled the runtime or dependencies'
         print('WINDOWS_ONE_CLICK_PRIVATE_PYTHON_AUTHENTICATED_UI_AND_CLEAN_FOLDER_PASS')
     return 0
 
