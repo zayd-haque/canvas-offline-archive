@@ -22,3 +22,8 @@ dist/
 # Private Gemini credentials introduced by the organization update.
 .secrets/
 .canvas_credentials.json
+
+# [Codex] App-private interpreter and runtime setup staging.
+.python/
+.python-download.*/
+.python-install.lock

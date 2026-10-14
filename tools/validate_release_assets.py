@@ -10,7 +10,7 @@ REPOSITORY = 'zayd-haque/canvas-offline-archive'
 PACKAGE_ROOT = 'canvas-offline-archive'
 
 
-def validate_package(path: Path, platform: str, tag: str) -> dict:
+def validate_package(path: Path, platform: str, tag: str, *, allow_preview: bool = False) -> dict:
     if not tag.strip():
         raise ValueError('Publishing requires an explicit release tag')
     with zipfile.ZipFile(path) as archive:
@@ -22,9 +22,28 @@ def validate_package(path: Path, platform: str, tag: str) -> dict:
             if not parts or parts[0] != PACKAGE_ROOT or '..' in parts or '\\' in name:
                 raise ValueError('Unsafe release archive path')
         prefix = PACKAGE_ROOT + '/'
+        # [Codex] Both platforms retain compatibility with existing flat ZIPs.
+        bootstrap = 'bootstrap.sh' if platform == 'macos' else 'bootstrap_windows.py'
+        launcher_name = ('Open Canvas Offline Archive.command' if platform == 'macos'
+                         else 'Open Canvas Offline Archive Windows.cmd')
+        if prefix + 'App Files/' + bootstrap in names:
+            if prefix + launcher_name not in names:
+                raise ValueError('Double-click launcher is missing')
+            for item in archive.infolist():
+                if item.is_dir():
+                    continue
+                relative = item.filename[len(prefix):]
+                if relative != launcher_name and not relative.startswith('App Files/'):
+                    raise ValueError('Only the platform launcher may be outside App Files')
+            launcher = archive.getinfo(prefix + launcher_name)
+            if platform == 'macos' and not (launcher.external_attr >> 16) & 0o111:
+                raise ValueError('Mac double-click launcher must be executable')
+            if platform == 'windows' and prefix + 'App Files/bootstrap_windows.ps1' not in names:
+                raise ValueError('Windows automatic Python setup is missing')
+            prefix += 'App Files/'
         required = {'requirements.txt', 'release_updater.py', 'canvas_app/run.py',
                     'canvas_app/static/index.html', 'release_info.json'}
-        required.add('bootstrap_windows.py' if platform == 'windows' else 'bootstrap.sh')
+        required.add(bootstrap)
         if not all(prefix + name in names for name in required):
             raise ValueError('Release archive is incomplete')
         entry = archive.getinfo(prefix + 'release_info.json')
@@ -34,6 +53,8 @@ def validate_package(path: Path, platform: str, tag: str) -> dict:
         expected = {'repository': REPOSITORY, 'platform': platform, 'tag': tag}
         if not isinstance(metadata, dict) or any(metadata.get(k) != v for k, v in expected.items()):
             raise ValueError(f'Release metadata must match {REPOSITORY}, {platform}, {tag}')
+        if metadata.get('preview') is True and not allow_preview:
+            raise ValueError('Preview packages cannot be published as official releases')
         return metadata
 
 

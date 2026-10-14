@@ -28,18 +28,18 @@ You can also remove every scan root. The dashboard then shows a getting-started 
 
 ## Requirements
 
-- A Mac or Windows PC with **Python 3.14**. Initial setup also downloads Python dependencies and Playwright Chromium, so it needs internet access.
+- A Mac or Windows PC. Mac setup downloads a private Python 3.14 runtime when needed; the current Windows release requires separately installed Python 3.14. First setup needs internet for dependencies and Chromium.
 - Your own authorized Canvas account and a reachable course URL for new captures. Your institution may require a visible browser sign-in and two-factor authentication.
 - Enough free disk space for the course material you choose to save. Local model use also requires Ollama and a model you install yourself.
 
 ## Install and open
 
-1. Install [Python 3.14](https://www.python.org/downloads/) for your platform.
+1. On Mac, Python setup is automatic. On Windows, install [Python 3.14](https://www.python.org/downloads/). First setup needs internet.
 2. Download and extract the [Mac ZIP](https://github.com/zayd-haque/canvas-offline-archive/releases/latest/download/canvas-offline-archive-macos.zip) or [Windows ZIP](https://github.com/zayd-haque/canvas-offline-archive/releases/latest/download/canvas-offline-archive-windows.zip) into a folder you control.
-3. In the extracted `canvas-offline-archive` folder, double-click **Open Canvas Offline Archive.command** on Mac or **Open Canvas Offline Archive Windows.cmd** on Windows. The launcher creates a local `.venv`, installs dependencies, and starts the app. Keep its terminal window open while using the app.
+3. In the extracted `canvas-offline-archive` folder, double-click **Open Canvas Offline Archive.command** on Mac or **Open Canvas Offline Archive Windows.cmd** on Windows. The Mac folder shows only its launcher beside **App Files**, which holds the implementation and documentation. The launcher automatically sets up Python when needed, creates a local `.venv`, installs dependencies, and starts the app. Keep its terminal window open while using the app.
 4. In the browser window opened by the launcher, use the skippable first-run Setup Guide. You can reopen it later. Choose your directory and organization method, then add a course when ready.
 
-To start manually, open Terminal in the unzipped folder and run:
+To start manually on Mac, open Terminal inside **App Files** (or the root of an older install) and run:
 
 ```sh
 bash bootstrap.sh

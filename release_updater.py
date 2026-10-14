@@ -78,6 +78,10 @@ def _asset_path(name: str) -> str:
     if not name.startswith(PACKAGE_ROOT + "/") or path.is_absolute() or ".." in path.parts:
         raise ValueError("Update archive contains an unsafe path")
     relative = str(PurePosixPath(*path.parts[1:]))
+    # [Codex] Both folder layouts map to this installed application's root.
+    # Run the normal allowlist after removing the packaging-only folder.
+    if relative.startswith("App Files/"):
+        relative = relative[len("App Files/"):]
     parts = PurePosixPath(relative).parts
     if relative in ROOT_FILES:
         return relative
@@ -332,6 +336,9 @@ def maybe_update(root: Path, platform: str) -> bool:
     if os.environ.get("CANVAS_OFFLINE_NO_UPDATE") == "1" or (root / ".git").exists():
         return False
     installed = _read_json(root / "release_info.json")
+    # [Codex] A review ZIP must not replace itself with an older public layout.
+    if installed.get("preview") is True:
+        return False
     latest = _request_json(API)
     tag = latest.get("tag_name")
     published = latest.get("published_at")

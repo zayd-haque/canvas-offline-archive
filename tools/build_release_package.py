@@ -35,6 +35,8 @@ DOC_FILES = {
 }
 EXACT_FILES = {
     "Canvas Module Downloader/config.example.json",
+    "Canvas Module Downloader/keyword_classifier.py",
+    "Canvas Module Downloader/cloud_privacy.py",
     "canvas_app/browser_lifecycle.py",
     "canvas_app/native.py",
     "canvas_app/native_windows.py",
@@ -71,11 +73,21 @@ def package_files() -> list[tuple[str, Path]]:
     return files
 
 
+def release_path(name: str, platform: str) -> str:
+    """[Codex] Downloads show one launcher and one implementation folder."""
+    launcher = ("Open Canvas Offline Archive.command" if platform == "macos"
+                else "Open Canvas Offline Archive Windows.cmd")
+    if platform == "macos" and name != launcher:
+        return f"App Files/{name}"
+    return name
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path, help="ZIP path outside the repository")
     parser.add_argument("--platform", choices=("macos", "windows"), default="macos")
     parser.add_argument("--tag", default="", help="GitHub release tag when publishing this package")
+    parser.add_argument("--preview", action="store_true", help="Build a test download that skips automatic release updates")
     args = parser.parse_args()
     output = Path(os.path.abspath(args.output.expanduser()))
     if output.resolve().is_relative_to(ROOT):
@@ -86,7 +98,7 @@ def main() -> int:
     files = package_files()
     platform_excludes = ({"bootstrap.sh", "Open Canvas Offline Archive.command"}
                          if args.platform == "windows" else
-                         {"bootstrap_windows.py", "Open Canvas Offline Archive Windows.cmd"})
+                         {"bootstrap_windows.py", "bootstrap_windows.ps1", "Open Canvas Offline Archive Windows.cmd"})
     files = [(name, source) for name, source in files if name not in platform_excludes]
     # [Codex] Build privately, then publish without replacing an existing file
     # or following an output symlink, including one created during the build.
@@ -95,7 +107,7 @@ def main() -> int:
         with os.fdopen(fd, 'w+b') as stream:
             with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
                 for name, source in files:
-                    info = zipfile.ZipInfo(f"{PACKAGE_ROOT}/{name}", date_time=(2026, 10, 3, 0, 0, 0))
+                    info = zipfile.ZipInfo(f"{PACKAGE_ROOT}/{release_path(name, args.platform)}", date_time=(2026, 10, 3, 0, 0, 0))
                     info.compress_type = zipfile.ZIP_DEFLATED
                     info.external_attr = (0o755 if name in {"bootstrap.sh", "Open Canvas Offline Archive.command"} else 0o644) << 16
                     archive.writestr(info, source.read_bytes())
@@ -105,7 +117,9 @@ def main() -> int:
                     "tag": args.tag,
                     "built_at": datetime.now(timezone.utc).isoformat(),
                 }
-                archive.writestr(f"{PACKAGE_ROOT}/release_info.json", json.dumps(release_info, sort_keys=True))
+                if args.preview:
+                    release_info["preview"] = True
+                archive.writestr(f"{PACKAGE_ROOT}/{release_path('release_info.json', args.platform)}", json.dumps(release_info, sort_keys=True))
             stream.flush()
             os.fsync(stream.fileno())
         if args.tag:
@@ -113,7 +127,7 @@ def main() -> int:
                 from .validate_release_assets import validate_package
             except ImportError:
                 from validate_release_assets import validate_package
-            validate_package(Path(temporary), args.platform, args.tag)
+            validate_package(Path(temporary), args.platform, args.tag, allow_preview=args.preview)
         os.link(temporary, output)
     finally:
         os.unlink(temporary)

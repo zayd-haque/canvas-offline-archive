@@ -64,19 +64,102 @@ if [ -L "$(dirname "$CONFIG_TARGET")" ] || [ -L "$CONFIG_TARGET" ]; then
     exit 1
 fi
 
+# [Codex] Install a checksum-pinned, app-private runtime on a fresh Mac.
+# No Homebrew, admin rights, system Python changes, or remote shell scripts.
+install_private_python() {
+    local runtime_dir="${SCRIPT_DIR}/.python"
+    if [ -L "$runtime_dir" ]; then
+        echo "Error: .python is a symbolic link; refusing runtime setup." >&2
+        return 1
+    fi
+    if [ -x "$runtime_dir/bin/python3.14" ]; then
+        PYTHON_BIN="$runtime_dir/bin/python3.14"
+        return
+    fi
+    if [ -e "$runtime_dir" ]; then
+        echo "Error: the private Python setup is incomplete. Rename .python inside App Files and retry." >&2
+        return 1
+    fi
+    local architecture archive_name expected_hash
+    architecture="$(uname -m)"
+    case "$architecture" in
+        arm64)
+            archive_name='cpython-3.14.8%2B20261013-aarch64-apple-darwin-install_only.tar.gz'
+            expected_hash='709f419d175eb015f810b68aa54bdae1d776c9824cb362aa701c93b0a9f2a9e7'
+            ;;
+        x86_64)
+            archive_name='cpython-3.14.8%2B20261013-x86_64-apple-darwin-install_only.tar.gz'
+            expected_hash='e09bce050cf075e777d1a802c4a11b6d43d54291b5f76911887173b28ad9c9fd'
+            ;;
+        *) echo "Error: unsupported Mac architecture: $architecture" >&2; return 1 ;;
+    esac
+    # A private stage plus an exclusive lock avoids partially published runtimes.
+    local runtime_lock="${SCRIPT_DIR}/.python-install.lock"
+    if ! mkdir "$runtime_lock" 2>/dev/null; then
+        echo "Another Python setup may be running. Close it before retrying." >&2
+        echo "If setup was interrupted, remove .python-install.lock inside App Files."
+        return 1
+    fi
+    local runtime_stage
+    runtime_stage="$(mktemp -d "${SCRIPT_DIR}/.python-download.XXXXXX")" || { rmdir "$runtime_lock"; return 1; }
+    # The subshell's EXIT trap also cleans up failed downloads and hash checks.
+    (
+        trap 'rm -rf "$runtime_stage"; rmdir "$runtime_lock"' EXIT
+        echo "Setting up Python for this app. You do not need to install Python yourself."
+        echo "First setup needs internet. Downloading the Mac runtime..."
+        curl --fail --location --proto '=https' --proto-redir '=https' \
+            --connect-timeout 20 --max-time 600 --retry 2 \
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/${archive_name}" \
+            --output "$runtime_stage/runtime.tar.gz" || {
+                echo "Python download failed. Check your internet connection and open the launcher again." >&2
+                exit 1
+            }
+        local actual_hash
+        actual_hash="$(shasum -a 256 "$runtime_stage/runtime.tar.gz")"
+        if [ "${actual_hash%% *}" != "$expected_hash" ]; then
+            echo "Python download verification failed. Nothing was installed; retry the launcher." >&2
+            exit 1
+        fi
+        tar -xzf "$runtime_stage/runtime.tar.gz" -C "$runtime_stage" || exit 1
+        "$runtime_stage/python/bin/python3.14" -c 'import sys; raise SystemExit(sys.version_info[:2] != (3, 14))' || exit 1
+        # Refuse any destination created since the initial check.
+        if [ -e "$runtime_dir" ] || [ -L "$runtime_dir" ]; then
+            echo "Python destination changed during setup; refusing installation." >&2
+            exit 1
+        fi
+        mv "$runtime_stage/python" "$runtime_dir" || exit 1
+    ) || return 1
+    PYTHON_BIN="$runtime_dir/bin/python3.14"
+}
+
 # Step 1: Detect the validated Python version
 echo -e "\n${BOLD}[1/4] Checking Python environment...${NC}"
 
 PYTHON_BIN=""
-if command -v python3.14 &>/dev/null; then
+# Prefer a previously downloaded runtime so later launches work offline.
+if [ -L "${SCRIPT_DIR}/.python" ]; then
+    echo "Error: .python is a symbolic link; refusing setup." >&2
+    exit 1
+elif [ -x "${SCRIPT_DIR}/.python/bin/python3.14" ]; then
+    PYTHON_BIN="${SCRIPT_DIR}/.python/bin/python3.14"
+elif command -v python3.14 &>/dev/null; then
     PYTHON_BIN="$(command -v python3.14)"
 fi
 
 if [ -z "$PYTHON_BIN" ]; then
-    echo -e "${RED}Error: Python 3.14 is required for this release.${NC}"
-    echo "Install Python 3.14, then run ./bootstrap.sh again. See docs/INSTALL.md."
-    exit 1
+    if [ "$(uname -s)" = Darwin ]; then
+        install_private_python
+    else
+        echo -e "${RED}Error: Python 3.14 is required for this release.${NC}"
+        echo "Install Python 3.14, then run bash bootstrap.sh again."
+        exit 1
+    fi
 fi
+
+"$PYTHON_BIN" -c 'import sys; raise SystemExit(sys.version_info[:2] != (3, 14))' || {
+    echo "Error: the selected Python runtime is not Python 3.14." >&2
+    exit 1
+}
 
 PY_VERSION="$("$PYTHON_BIN" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")')"
 echo -e "${GREEN}✓ Found Python ${PY_VERSION} (${PYTHON_BIN})${NC}"
@@ -216,8 +299,7 @@ echo -e "${GREEN}============================================================${N
 
 if [ "$SETUP_ONLY" = true ]; then
     echo -e "\nSetup completed successfully (--setup-only specified)."
-    echo -e "To start the web application at any time, run:"
-    echo -e "  ${BOLD}./bootstrap.sh${NC}  or  ${BOLD}${VENV_PYTHON} canvas_app/run.py${NC}\n"
+    echo "Next time, double-click Open Canvas Offline Archive.command to open the app."
     exit 0
 fi
 
