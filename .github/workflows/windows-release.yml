@@ -4,6 +4,11 @@ on:
     branches: [main, 'codex/windows-release-verification', 'codex/windows-upgrade-verification']
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Optional published release tag to verify instead of a source-built ZIP
+        required: false
+        type: string
 permissions:
   contents: read
 jobs:
@@ -22,6 +27,9 @@ jobs:
       - run: python -m unittest discover tests -v
       - name: One-click setup without Python on PATH
         run: python tools/verify_windows_first_run.py
+        env:
+          CANVAS_VERIFY_RELEASE_TAG: ${{ inputs.release_tag }}
+          TEST_GITHUB_TOKEN: ${{ github.token }}
       - run: python tools/verify_windows_release.py
       - run: python tools/verify_windows_upgrade.py
         env:

@@ -5,12 +5,14 @@ runtime/dependencies/Chromium; never uses Canvas, cloud AI, or personal profiles
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import urllib.request
 import zipfile
 
 BROWSER_CHECK = r'''
@@ -22,6 +24,7 @@ root = Path(os.environ['CANVAS_FIXTURE_ROOT'])
 report = {'passed': False, 'javascript_errors': [], 'external_hosts': []}
 try:
     with sync_playwright() as p:
+        report['chromium_executable_exists'] = Path(p.chromium.executable_path).is_file()
         browser = p.chromium.launch(headless=True)
         try:
             page = browser.new_page()
@@ -62,9 +65,26 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix='canvas-first-run-') as temporary:
         root = Path(temporary)
         archive = root / 'windows.zip'
-        subprocess.run([sys.executable, str(source / 'tools/build_release_package.py'),
-                        str(archive), '--platform', 'windows', '--tag', 'v-startup-check', '--preview'],
-                       check=True, cwd=source)
+        release_tag = os.environ.get('CANVAS_VERIFY_RELEASE_TAG', '')
+        if release_tag:
+            headers = {'User-Agent': 'Canvas-Published-Installer-Verification', 'Accept': 'application/vnd.github+json'}
+            token = os.environ.get('TEST_GITHUB_TOKEN')
+            if token:
+                headers['Authorization'] = 'Bearer ' + token
+            request = urllib.request.Request('https://api.github.com/repos/zayd-haque/canvas-offline-archive/releases/tags/' + release_tag, headers=headers)
+            with urllib.request.urlopen(request, timeout=30) as response:
+                release = json.load(response)
+            asset = next(a for a in release['assets'] if a['name'] == 'canvas-offline-archive-windows.zip')
+            # Authentication is used only for GitHub API metadata, never asset redirects.
+            with urllib.request.urlopen(asset['browser_download_url'], timeout=120) as response:
+                archive.write_bytes(response.read())
+            digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+            assert asset['digest'] == 'sha256:' + digest
+            print('PUBLIC_RELEASE_ZIP_VERIFIED', release_tag, digest, flush=True)
+        else:
+            subprocess.run([sys.executable, str(source / 'tools/build_release_package.py'),
+                            str(archive), '--platform', 'windows', '--tag', 'v-startup-check', '--preview'],
+                           check=True, cwd=source)
         with zipfile.ZipFile(archive) as zipped:
             zipped.extractall(root / 'Install With Spaces')
         folder = root / 'Install With Spaces/canvas-offline-archive'
@@ -85,6 +105,10 @@ def main() -> int:
                    APPDATA=str(home / 'AppData'), LOCALAPPDATA=str(home / 'LocalAppData'),
                    TEMP=str(home / 'Temp'), TMP=str(home / 'Temp'),
                    PATH=str(system), PYTHONIOENCODING='utf-8', CANVAS_FIXTURE_ROOT=str(root))
+        for executable in ('python', 'py'):
+            assert subprocess.run([str(system / 'where.exe'), executable], cwd=folder, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0
+        assert not (app / '.python').exists() and not (app / '.venv').exists()
+        print('FRESH_INSTALL_NO_PYTHON_OR_PY_ON_PATH', flush=True)
         browser = root / 'browser-check.py'
         browser.write_text(BROWSER_CHECK, encoding='utf-8')
         python = app / '.venv/Scripts/python.exe'
@@ -105,16 +129,24 @@ def main() -> int:
             print(log.read_text(encoding='utf-8', errors='replace')[-12000:])
         assert status == 0, 'Default Windows launcher failed; inspect fixture startup output.'
         report = json.loads((root / 'browser-report.json').read_text(encoding='utf-8'))
-        assert report['passed'], report
+        assert report['passed'] and report['chromium_executable_exists'], report
+        print('FIRST_DEFAULT_LAUNCH_AUTHENTICATED_UI_AND_CHROMIUM_PASS', flush=True)
+        print(subprocess.check_output([str(python), '-c', 'import json,sys,fastapi,uvicorn,pypdf,requests,playwright,pypdfium2; from winrt.windows.media.ocr import OcrEngine; print(json.dumps(dict(python=sys.version.split()[0],executable=sys.executable,base_prefix=sys.base_prefix,required_imports=True)))'], env=env, text=True).strip(), flush=True)
         assert (app / '.python/python.exe').is_file()
         assert python.is_file()
         assert sorted(p.name for p in folder.iterdir()) == ['App Files', launcher.name]
         # Reuse the installation without a runtime download or Python on PATH.
         watched = [app / '.python/python.exe', python, app / '.venv/.deps_installed']
         before = {path: (path.stat().st_mtime_ns, path.stat().st_size) for path in watched}
-        subprocess.run(command + ['--setup-only'], cwd=folder, env=env, check=True,
-                       stdin=subprocess.DEVNULL, timeout=180)
+        (root / 'browser-report.json').unlink()
+        with (root / 'second-launch.log').open('wb') as output:
+            subprocess.run(command, cwd=folder, env=env, check=True,
+                           stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.STDOUT, timeout=180)
+        second_report = json.loads((root / 'browser-report.json').read_text(encoding='utf-8'))
+        assert second_report['passed'] and second_report['chromium_executable_exists'], second_report
+        print('SECOND_DEFAULT_LAUNCH_AUTHENTICATED_UI_PASS', flush=True)
         assert before == {path: (path.stat().st_mtime_ns, path.stat().st_size) for path in watched}, 'Second launch unexpectedly reinstalled the runtime or dependencies'
+        print('SECOND_LAUNCH_RUNTIME_AND_DEPENDENCIES_UNCHANGED', flush=True)
         print('WINDOWS_ONE_CLICK_PRIVATE_PYTHON_AUTHENTICATED_UI_AND_CLEAN_FOLDER_PASS')
     return 0
 
