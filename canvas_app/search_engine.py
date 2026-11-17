@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-[Codex] Offline Smart Search Backend Engine for Canvas Course Offline Web App.
+Offline Smart Search Backend Engine for Canvas Course Offline Web App.
 Provides:
 1. SQLite FTS5 incremental indexing of course files (PDFs, PPTXs, text files).
 2. Curriculum Topic & Chapter Knowledge Engine mapping syllabus, announcements, and modules to topics/chapters.

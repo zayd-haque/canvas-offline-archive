@@ -41,6 +41,6 @@ Automatic downloads require a tagged release on `zayd-haque/canvas-offline-archi
 
 This release has automated fixture coverage, but a fresh authenticated crawl of every institution and category, native preview appearance, OCR on every document, and a clean-Mac install still need real-world verification. Use the app only for courses you are authorized to access and retain.
 
-## Runtime provenance [Codex]
+## Runtime provenance
 
 Automatic Python setup uses Astral’s Python Standalone Builds: CPython 3.14.8, build 20261013, with separately pinned SHA-256 digests for Apple Silicon and Intel. The download is verified before extraction or execution. It requires no administrator privileges and does not install system Python. Runtime licenses are included in the downloaded distribution. First setup still downloads the app dependencies and Playwright browser.

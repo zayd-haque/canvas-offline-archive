@@ -1,4 +1,4 @@
-"""[Codex] OCR PDF pages locally with PDFium and the Windows OCR service.
+"""OCR PDF pages locally with PDFium and the Windows OCR service.
 
 Runs only in the bounded subprocess started by ocr.py. Each completed page is
 emitted immediately so an interrupted batch can retain earlier results.

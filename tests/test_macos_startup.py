@@ -1,4 +1,4 @@
-"""[Codex] Clean-folder startup, private runtime integrity, and upgrade contracts."""
+"""Clean-folder startup, private runtime integrity, and upgrade contracts."""
 import tests
 import hashlib
 import io

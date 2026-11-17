@@ -472,7 +472,7 @@ uvicorn==0.53.0 \
     --hash=sha256:e8dca71ec86dce5f04e333f0d56cdedf942446e6643b9cea1af0d6d3a02cb03e
     # via -r requirements.in
 
-# [Codex] Windows OCR: local PDFium renderer and built-in Windows.Media.Ocr.
+# Windows OCR: local PDFium renderer and built-in Windows.Media.Ocr.
 # Hashes cover CPython 3.14 x64 and ARM64 wheels; Mac skips these markers.
 pypdfium2==5.13.0 ; sys_platform == "win32" \
     --hash=sha256:47dcca2a8d507b5fd24f94c3c9d48fb379430f097bc20f01beff6c963ffbcedb \

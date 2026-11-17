@@ -260,7 +260,7 @@ def format_assignment_preview(filename: str, file_path: str, raw_text: str, cour
     }
 
 
-# [Codex] Safe, bounded rendering; original formatting engine by [Antigravity].
+# Safe, bounded rendering.
 MAX_PREVIEW_BYTES = 1024 * 1024
 MAX_MARKDOWN_CHARS = 256 * 1024
 MAX_TEXT_CHARS = MAX_MARKDOWN_CHARS
@@ -483,7 +483,7 @@ MAX_DOCX_IMAGE_REFERENCES = 256
 
 
 class DocxPreviewLimit(ValueError):
-    """[Codex] A document exceeded the bounded in-process rendering budget."""
+    """A document exceeded the bounded in-process rendering budget."""
 
 
 class _DocxBudget:
@@ -676,7 +676,7 @@ def _format_docx_table(tbl_elem, image_map: dict, hyperlink_rels: dict, file_pat
 
 
 def _parse_docx_xml(data):
-    """[Codex] Reject excessive XML work while the tree is being built."""
+    """Reject excessive XML work while the tree is being built."""
     count = depth = 0
     parser = ElementTree.iterparse(io.BytesIO(data), events=('start', 'end'))
     for event, _ in parser:
@@ -691,7 +691,7 @@ def _parse_docx_xml(data):
 
 
 def _read_docx_xml(archive, name):
-    """[Codex] Reject expansion before allocation, including relationship XML."""
+    """Reject expansion before allocation, including relationship XML."""
     if archive.getinfo(name).file_size > MAX_DOCX_XML_BYTES:
         raise ValueError('Word document XML exceeds safety limit')
     with archive.open(name) as stream:
@@ -943,7 +943,7 @@ def format_document_preview(
                     "tables": docx_res.get("tables", 0)
                 }
         except Exception:
-            # [Codex] A rejected DOCX must not bypass bounds through native preview.
+            # A rejected DOCX must not bypass bounds through native preview.
             return {"type": "fallback", "url": file_url, "extension": ext,
                     "size": file_size, "formatted_size": formatted_sz,
                     "formatted_html": None}
@@ -984,7 +984,7 @@ def calculate_assignment_status(assignment: dict, now: datetime = None) -> str:
     if not isinstance(assignment, dict):
         return "unsubmitted"
 
-    # [Codex] Treat graded submissions as submitted, preserving the public status enum.
+    # Treat graded submissions as submitted, preserving the public status enum.
     sub_status = str(assignment.get("submission_status") or "").strip().lower()
     stored_status = str(assignment.get("status") or "").strip().lower()
     if sub_status in {"submitted", "graded"} or assignment.get("submitted_at") or stored_status in {"submitted", "graded"}:
@@ -1003,7 +1003,7 @@ def calculate_assignment_status(assignment: dict, now: datetime = None) -> str:
 
 
 def _assignment_deadline(raw, *, end_of_day=False):
-    """[Codex] Parse offset-aware ISO or archived clock text without dropping PM/offsets."""
+    """Parse offset-aware ISO or archived clock text without dropping PM/offsets."""
     if not isinstance(raw, str) or not raw.strip():
         return None
     raw = raw.strip()
@@ -1025,7 +1025,7 @@ def _assignment_deadline(raw, *, end_of_day=False):
 
 
 def _finite_grade(value):
-    """[Codex] Untrusted numeric fields must remain valid JSON numbers."""
+    """Untrusted numeric fields must remain valid JSON numbers."""
     if isinstance(value, bool):
         return 0.0
     try:

@@ -1,4 +1,4 @@
-"""[Codex] Reject stale or mismatched release assets before publication."""
+"""Reject stale or mismatched release assets before publication."""
 from __future__ import annotations
 
 import argparse
@@ -22,7 +22,7 @@ def validate_package(path: Path, platform: str, tag: str, *, allow_preview: bool
             if not parts or parts[0] != PACKAGE_ROOT or '..' in parts or '\\' in name:
                 raise ValueError('Unsafe release archive path')
         prefix = PACKAGE_ROOT + '/'
-        # [Codex] Both platforms retain compatibility with existing flat ZIPs.
+        # Both platforms retain compatibility with existing flat ZIPs.
         bootstrap = 'bootstrap.sh' if platform == 'macos' else 'bootstrap_windows.py'
         launcher_name = ('Open Canvas Offline Archive.command' if platform == 'macos'
                          else 'Open Canvas Offline Archive Windows.cmd')

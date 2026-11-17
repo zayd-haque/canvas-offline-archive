@@ -1154,7 +1154,7 @@ async function cancelIngestion() {
   renderLauncherView();
 }
 
-// [Codex] Shared transport keeps credentials out of jobs and never invents success.
+// Shared transport keeps credentials out of jobs and never invents success.
 async function startArchiveJob(jobState, payload) {
   if (jobState.aiProvider === "gemini" && (jobState.geminiApiKey || "").trim()) {
     const saved = await fetch("/api/settings/gemini-key", {

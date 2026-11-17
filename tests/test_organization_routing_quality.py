@@ -1,4 +1,4 @@
-"""[Codex] Synthetic end-to-end organization preserves classifier purpose.
+"""Synthetic end-to-end organization preserves classifier purpose.
 
 Uses disposable course roots and real blueprint persistence, with all model,
 discovery, pacing and auxiliary provider work mocked. No personal archives.

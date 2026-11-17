@@ -37,7 +37,7 @@ def _get_active_config_path() -> Path:
 
 
 def _hierarchy_snapshot():
-    """[Codex] Read a single configuration snapshot per discovery pass."""
+    """Read a single configuration snapshot per discovery pass."""
     try:
         with _get_active_config_path().open(encoding='utf-8') as stream:
             data = json.load(stream)
@@ -176,7 +176,7 @@ def extract_course_term(data, folder=None):
     if not isinstance(data, dict):
         data = {}
 
-    # [Codex] Authoritative metadata is cheap and wins over archived filename guesses.
+    # Authoritative metadata is cheap and wins over archived filename guesses.
     for field in ("term", "quarter"):
         term = match_term_pattern(data.get(field))
         if term:
@@ -491,7 +491,7 @@ class ArchiveCatalog:
             if roots == self.roots and time.monotonic() < self.expires:
                 return copy.deepcopy(self.courses)
             previous = dict(self.blueprints)
-        # [Codex] A slow filesystem scan must not hold the blueprint-reader lock.
+        # A slow filesystem scan must not hold the blueprint-reader lock.
         if not self.scan_lock.acquire(blocking=False):
             with self.lock:
                 if roots == self.roots:
@@ -578,7 +578,7 @@ class ArchiveCatalog:
                         self._record_course(curr_dir, bp, found, cached, previous, recorded_paths)
                         # Do not traverse further into an identified course directory
                         continue
-                    # [Codex] Discovery is read-only. Import/synthesize endpoints
+                    # Discovery is read-only. Import/synthesize endpoints
                     # explicitly enroll legacy candidates before they are indexed.
 
                 if depth < max_depth:

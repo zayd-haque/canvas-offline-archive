@@ -1,4 +1,4 @@
-"""[Codex] Independent, synthetic document-role labels; no Gemini ground truth.
+"""Independent, synthetic document-role labels; no Gemini ground truth.
 
 Run: python3 -m tests.organization_benchmark [--legacy] [--split tune|heldout|all]
 Labels encode published default folder descriptions, not model predictions. All
@@ -153,7 +153,7 @@ def legacy_report(split='all'):
                              'expected': row['expected'], 'actual': FOLDERS[LEGACY_FAILURES[index + offset]]})
     return {'split': split, 'total': len(rows), 'correct': len(rows)-len(failures),
             'accuracy': (len(rows)-len(failures))/len(rows), 'failures': failures,
-            'provenance': 'Frozen original filename/title-only predictions; synthetic Codex labels, not Gemini parity.'}
+            'provenance': 'Frozen original filename/title-only predictions; synthetic labels, not Gemini parity.'}
 
 
 def cases(split='all'):
@@ -172,7 +172,7 @@ def evaluate(classifier, split='all'):
             failures.append({'id': row['id'], 'filename': row['filename'], 'expected': row['expected'], 'actual': actual})
     return {'split': split, 'total': len(rows), 'correct': len(rows) - len(failures),
             'accuracy': (len(rows) - len(failures)) / len(rows), 'failures': failures,
-            'provenance': 'Synthetic Codex-authored role labels; not Gemini parity or real archive accuracy.'}
+            'provenance': 'Synthetic role labels; not Gemini parity or real archive accuracy.'}
 
 
 if __name__ == '__main__':

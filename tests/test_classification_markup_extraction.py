@@ -1,4 +1,4 @@
-"""[Codex] Preserve useful identity evidence in bounded HTML/EPUB excerpts."""
+"""Preserve useful identity evidence in bounded HTML/EPUB excerpts."""
 import tests  # Required deterministic randomizer hook
 import io
 from pathlib import Path

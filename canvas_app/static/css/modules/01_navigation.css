@@ -143,7 +143,7 @@
   font-size: 15px;
   max-width: calc(50% - 215px);
   min-width: 0;
-  /* [Codex] Popup menus must escape the breadcrumb; labels clip themselves. */
+  /* Popup menus must escape the breadcrumb; labels clip themselves. */
   overflow: visible;
   z-index: 5;
 }
@@ -159,7 +159,7 @@
   flex-shrink: 1;
 }
 
-/* [Codex] Bound the upgraded trigger and keep long course names readable in its popup. */
+/* Bound the upgraded trigger and keep long course names readable in its popup. */
 .course-selector-wrapper .custom-select-container {
   max-width: 220px;
 }
@@ -279,7 +279,7 @@
   transition: all 0.1s ease;
 }
 
-/* [Codex] Sidebar icon slots remain square for every library glyph. */
+/* Sidebar icon slots remain square for every library glyph. */
 .course-sidebar-item .item-icon {
   display: inline-flex;
   align-items: center;

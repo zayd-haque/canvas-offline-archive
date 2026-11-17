@@ -1,4 +1,4 @@
-"""[Codex] Synthetic personal-data reduction at the shared Gemini boundary."""
+"""Synthetic personal-data reduction at the shared Gemini boundary."""
 import tests
 import contextlib
 import io
@@ -16,7 +16,7 @@ from cloud_privacy import redact_cloud_text
 
 class CloudPrivacyTests(unittest.TestCase):
     def setUp(self):
-        # [Codex] Never read saved credentials, including for local-provider calls.
+        # Never read saved credentials, including for local-provider calls.
         key_lookup = patch.object(llm_client, 'get_gemini_api_key', return_value='synthetic-provider-key')
         key_lookup.start()
         self.addCleanup(key_lookup.stop)

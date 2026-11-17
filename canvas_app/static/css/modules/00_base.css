@@ -49,6 +49,6 @@ body {
   overflow: hidden;
 }
 
-/* [Codex] Public locked shell contains no course data. */
+/* Public locked shell contains no course data. */
 .local-session-required { max-width: 640px; margin: 12vh auto; padding: 32px; color: var(--text-main); }
 .local-session-required p { line-height: 1.6; }

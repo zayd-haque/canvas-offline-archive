@@ -1,4 +1,4 @@
-"""[Codex] Check official platform releases before launching the local app.
+"""Check official platform releases before launching the local app.
 
 Only a published, SHA-256-digested GitHub release asset may replace packaged
 application files. Private configuration, course archives, and .venv are never
@@ -78,7 +78,7 @@ def _asset_path(name: str) -> str:
     if not name.startswith(PACKAGE_ROOT + "/") or path.is_absolute() or ".." in path.parts:
         raise ValueError("Update archive contains an unsafe path")
     relative = str(PurePosixPath(*path.parts[1:]))
-    # [Codex] Both folder layouts map to this installed application's root.
+    # Both folder layouts map to this installed application's root.
     # Run the normal allowlist after removing the packaging-only folder.
     if relative.startswith("App Files/"):
         relative = relative[len("App Files/"):]
@@ -123,7 +123,7 @@ def _download(url: str, destination: Path, expected_digest: str) -> None:
 
 
 def _publish(root: Path, relative: str, source: Path) -> None:
-    """[Codex] Publish through an exclusively created sibling; never truncate links."""
+    """Publish through an exclusively created sibling; never truncate links."""
     target = _safe_target(root, relative)
     target.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=".canvas-update-", dir=target.parent)
@@ -142,7 +142,7 @@ def _publish(root: Path, relative: str, source: Path) -> None:
 
 @contextlib.contextmanager
 def _update_lock(root: Path):
-    """[Codex] Kernel-held lock; a stopped process cannot leave a stale lock."""
+    """Kernel-held lock; a stopped process cannot leave a stale lock."""
     flags = os.O_RDWR | os.O_CREAT
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
@@ -236,7 +236,7 @@ def _install_archive_unlocked(root: Path, archive: Path, platform: str, tag: str
                     backup = backups / relative
                     backup.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(target, backup)
-            # [Codex] Persist every original before the first application write.
+            # Persist every original before the first application write.
             recovery = Path(tempfile.mkdtemp(prefix=".canvas-recovery-", dir=root))
             originals = recovery / "originals"
             originals.mkdir()
@@ -308,7 +308,7 @@ def _recover_transaction(root: Path, recovery: Path) -> None:
 
 
 def recover_pending(root: Path) -> None:
-    """[Codex] Restore incomplete updates before deciding whether to update again."""
+    """Restore incomplete updates before deciding whether to update again."""
     with _update_lock(root):
         _recover_pending_unlocked(root)
 
@@ -336,7 +336,7 @@ def maybe_update(root: Path, platform: str) -> bool:
     if os.environ.get("CANVAS_OFFLINE_NO_UPDATE") == "1" or (root / ".git").exists():
         return False
     installed = _read_json(root / "release_info.json")
-    # [Codex] A review ZIP must not replace itself with an older public layout.
+    # A review ZIP must not replace itself with an older public layout.
     if installed.get("preview") is True:
         return False
     latest = _request_json(API)

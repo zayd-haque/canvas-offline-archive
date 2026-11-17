@@ -64,7 +64,7 @@ if [ -L "$(dirname "$CONFIG_TARGET")" ] || [ -L "$CONFIG_TARGET" ]; then
     exit 1
 fi
 
-# [Codex] Install a checksum-pinned, app-private runtime on a fresh Mac.
+# Install a checksum-pinned, app-private runtime on a fresh Mac.
 # No Homebrew, admin rights, system Python changes, or remote shell scripts.
 install_private_python() {
     local runtime_dir="${SCRIPT_DIR}/.python"
@@ -164,7 +164,7 @@ fi
 PY_VERSION="$("$PYTHON_BIN" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")')"
 echo -e "${GREEN}✓ Found Python ${PY_VERSION} (${PYTHON_BIN})${NC}"
 
-# [Codex] Recover interrupted source updates before reading or installing the lock.
+# Recover interrupted source updates before reading or installing the lock.
 "$PYTHON_BIN" "${SCRIPT_DIR}/release_updater.py" --platform macos --recover-only
 
 # Step 2: Set up isolated virtual environment (.venv)
@@ -188,7 +188,7 @@ else
     fi
 fi
 
-# [Codex] Marker publication replaces links instead of truncating their targets.
+# Marker publication replaces links instead of truncating their targets.
 write_dependency_marker() {
     "$PYTHON_BIN" - "${VENV_DIR}/.deps_installed" "$1" <<'PY_MARKER'
 import os

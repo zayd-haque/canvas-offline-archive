@@ -78,7 +78,7 @@ function renderGradesTab() {
 
   if (assignments.length > 0) {
     assignments.forEach(a => {
-      // [Codex] Backend owns deadline status and archived text normalization.
+      // Backend owns deadline status and archived text normalization.
       const isGs = !!a.is_gradescope;
       const dueText = a.due_display || a.due || a.due_date || "";
 

@@ -42,7 +42,7 @@ def generate_document_preview(target_file):
             return None
         key = hashlib.sha256((str(target_file) + repr(initial)).encode()).hexdigest()
         destination = PREVIEW_CACHE_DIR / key
-        # [Codex] Completed previews do not queue behind unrelated native work.
+        # Completed previews do not queue behind unrelated native work.
         # Revalidate the source after checking the entry: its version may have
         # changed since the initial stat used to derive this cache key.
         def cached_preview():

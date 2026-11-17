@@ -23,7 +23,7 @@ from main import run_course_pipeline, run_full_scrape
 class TestMainPipeline(unittest.TestCase):
 
     def test_existing_archive_output_preserves_custom_root(self):
-        # [Codex] Maintenance must never append course or lectures folder names.
+        # Maintenance must never append course or lectures folder names.
         from main import existing_archive_output
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / "custom library" / "archive-name"
@@ -34,7 +34,7 @@ class TestMainPipeline(unittest.TestCase):
             self.assertEqual(list(root.iterdir()), [marker])
 
     def test_existing_archive_output_missing_does_not_create(self):
-        # [Codex] A stale course location fails safely instead of creating folders.
+        # A stale course location fails safely instead of creating folders.
         from main import existing_archive_output
         with tempfile.TemporaryDirectory() as td:
             missing = Path(td) / "missing archive"
@@ -45,7 +45,7 @@ class TestMainPipeline(unittest.TestCase):
     @patch("main.run_local_reclassify")
     @patch("main.load_config")
     def test_existing_archive_pipeline_ignores_default_and_subfolder(self, mock_load, mock_reclassify):
-        # [Codex] Verify the actual maintenance call, not only its path helper.
+        # Verify the actual maintenance call, not only its path helper.
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / "custom library" / "archive-name"
             root.mkdir(parents=True)

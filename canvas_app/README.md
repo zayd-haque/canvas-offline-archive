@@ -1,7 +1,5 @@
 # Canvas offline backend
 
-Backend reliability, search tuning, and resumable OCR in this release: **[Codex]**.
-
 Install the hash-locked Python 3.14 environment in [SECURITY.md](../docs/SECURITY.md), then run `.venv/bin/python canvas_app/run.py`. The launcher binds **127.0.0.1:8000**, waits for readiness,
 and opens the browser. Development reload is disabled for normal launches.
 Launcher-opened tabs send authenticated five-second heartbeats. Closing the last tab
@@ -189,7 +187,7 @@ cache garbage collection remain follow-up work. OCR checkpoints also occupy loca
 cache space and are not yet subject to an automatic disk quota.
 
 
-Backend rendering and resource limits [Codex]
+Backend rendering and resource limits
 --------------------------------------------
 The frontend continues to consume `body_html` and `formatted_html`. HTML is rebuilt
 from source text rather than trusting HTML supplied in an archive. Unsupported or
@@ -220,7 +218,7 @@ Quick Look cache hits bypass unrelated native generation work and still validate
 the source file version. Native preview appearance remains dependent on macOS.
 
 
-Modular presentation contract [Codex]
+Modular presentation contract
 ------------------------------------
 Edit `static/js/src/*.js` and `static/css/modules/*.css`, then run
 `python3 canvas_app/bundle.py`. Numbered sources concatenate deterministically into
@@ -238,12 +236,12 @@ state, and treat filenames as plain text. UI composition remains client-side;
 archived document parsing and grade calculations remain server-side.
 
 
-Security remediation [Codex]
+Security remediation
 ----------------------------
 See [SECURITY.md](../docs/SECURITY.md) for privacy, upgrade, recovery and verification instructions. Passive discovery no longer writes blueprints: import legacy course folders explicitly. The launcher permits one active pipeline for the shared browser profile and returns 409/429 for conflicts; logs and subscriber queues are bounded. Credentials use the dedicated settings endpoint only, and validation errors do not echo input. Metadata rendering escapes dates, points and link identifiers; the application CSP denies inline scripts. DOCX ZIP entries are checked and read with decompressed-size budgets before parsing.
 
 A failed or disconnected pipeline never becomes a simulated success. SSE reconnects while completion is unconfirmed; cancelling requires a confirmed backend response. Zero file counts remain zero, and missing counts remain unknown. Shared transport replaces duplicated demo behavior. Provider selection never silently falls back. New downloader session cookies remain in memory rather than course folders.
 
-### Authenticated local startup [Codex]
+### Authenticated local startup
 
 Use `python canvas_app/run.py` and the browser window it opens. The launcher exchanges a one-use URL-fragment token for an HttpOnly local session before any course data loads. A plain bookmarked URL works only while that browser has a valid session; after server restart, reopen through the launcher. All course/settings/job APIs, document files, and generated previews require authentication; generic static assets and the minimal health endpoint remain public. See SECURITY.md for the loopback cookie/port limitation.

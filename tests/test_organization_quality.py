@@ -1,4 +1,4 @@
-"""[Codex] Synthetic role quality gates and isolated provider payload contracts."""
+"""Synthetic role quality gates and isolated provider payload contracts."""
 import tests
 import unittest
 import tempfile
@@ -168,7 +168,7 @@ class OllamaClassificationPayloadTests(unittest.TestCase):
                 self.assertEqual(events, ['hint', 'model'])
 
     def test_invalid_gemini_classification_never_falls_back(self):
-        # [Codex] Selected cloud inference must fail rather than count a rules
+        # Selected cloud inference must fail rather than count a rules
         # classification as a successful Gemini result. No real credentials.
         for response in ('not a category', '', '0', '999'):
             with self.subTest(response=response), \

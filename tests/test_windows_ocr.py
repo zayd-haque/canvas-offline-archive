@@ -1,4 +1,4 @@
-"""[Codex] Windows OCR routing and bounded PDF raster regressions."""
+"""Windows OCR routing and bounded PDF raster regressions."""
 
 import tests
 

@@ -1,4 +1,4 @@
-"""[Codex] Per-launch local browser authentication, never stored on disk."""
+"""Per-launch local browser authentication, never stored on disk."""
 import hmac
 import secrets
 import threading

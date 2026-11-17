@@ -1,4 +1,4 @@
-"""[Codex] Arbitrary nested destination descriptions and tag precedence."""
+"""Arbitrary nested destination descriptions and tag precedence."""
 import tests
 import itertools
 import unittest

@@ -1,4 +1,4 @@
-"""[Codex] Bounded file metadata probing; expensive PDF parsing is isolated."""
+"""Bounded file metadata probing; expensive PDF parsing is isolated."""
 import json
 import re
 import subprocess

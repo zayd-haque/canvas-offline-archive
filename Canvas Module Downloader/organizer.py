@@ -121,7 +121,7 @@ def get_work_dir(config: dict, course_name: str, output_dir: str = "") -> str:
         folder_name = f"{course_name} Work"
 
     if output_dir:
-        # [Codex] Compact layouts use the course itself as output, not its parent.
+        # Compact layouts use the course itself as output, not its parent.
         course_root = resolve_course_root(output_dir, course_name)
         return contained_path(course_root, folder_name)
 
@@ -248,7 +248,7 @@ def extract_file_text(file_path: str, max_pages: int = 20, max_chars: int = 8000
 
 @lru_cache(maxsize=128)
 def _cached_extract(file_path, modified, size, max_pages, max_chars):
-    """[Codex] Extract bounded, cached PDF, text, DOCX or PPTX content.
+    """Extract bounded, cached PDF, text, DOCX or PPTX content.
     Callers set page/character limits; classification reads at most 8000
     characters and supplies a 3500-character excerpt to the selected model."""
     text_content = ""
@@ -269,13 +269,13 @@ def _cached_extract(file_path, modified, size, max_pages, max_chars):
     except Exception:
         pass
 
-    # [Codex] Shift recovery addresses malformed PDF font encodings, not
+    # Shift recovery addresses malformed PDF font encodings, not
     # already decoded text or Office XML. Never scramble normal plaintext.
     return auto_decode_text(text_content.strip()) if ext == ".pdf" else text_content.strip()
 
 
 class _ClassificationHTMLParser(HTMLParser):
-    """[Codex] Keep visible heading/paragraph boundaries, including partial HTML."""
+    """Keep visible heading/paragraph boundaries, including partial HTML."""
     _blocks = {"p", "div", "br", "hr", "li", "tr", "section", "article", "header",
                "h1", "h2", "h3", "h4", "h5", "h6", "title", "blockquote"}
     _hidden = {"script", "style", "nav", "template"}
@@ -305,7 +305,7 @@ class _ClassificationHTMLParser(HTMLParser):
 
 
 def _visible_classification_html(data, max_chars):
-    """[Codex] Parse only bounded bytes, without entities or network resolution."""
+    """Parse only bounded bytes, without entities or network resolution."""
     if b"<!ENTITY" in data.upper() or b"\x00" in data:
         return ""
     parser = _ClassificationHTMLParser()
@@ -317,7 +317,7 @@ def _visible_classification_html(data, max_chars):
 
 
 def _html_classification_text(file_path, max_chars=8000):
-    """[Antigravity, Codex] Bounded visible HTML with structural text cues."""
+    """Bounded visible HTML with structural text cues."""
     if max_chars <= 0 or os.path.getsize(file_path) > 16 * 1024 * 1024:
         return ""
     try:
@@ -329,7 +329,7 @@ def _html_classification_text(file_path, max_chars=8000):
 
 
 def _epub_reading_order(archive):
-    """[Codex] Honor EPUB spine rather than navigation/lexical filename order."""
+    """Honor EPUB spine rather than navigation/lexical filename order."""
     import posixpath
     from urllib.parse import unquote, urlsplit
     def xml_member(name):
@@ -377,7 +377,7 @@ def _epub_reading_order(archive):
 
 
 def _epub_classification_text(file_path, max_chars=8000):
-    """[Antigravity, Codex] Bounded EPUB reading text in declared spine order."""
+    """Bounded EPUB reading text in declared spine order."""
     if max_chars <= 0 or os.path.getsize(file_path) > 128 * 1024 * 1024:
         return ""
     with zipfile.ZipFile(file_path) as archive:
@@ -403,7 +403,7 @@ def _epub_classification_text(file_path, max_chars=8000):
 
 
 def _office_classification_text(file_path, extension, max_pages, max_chars):
-    """[Codex] Bounded Office identity text; no embedded objects or external fetches."""
+    """Bounded Office identity text; no embedded objects or external fetches."""
     if os.path.getsize(file_path) > 128 * 1024 * 1024:
         return ""
     with zipfile.ZipFile(file_path) as archive:
@@ -494,7 +494,7 @@ def build_custom_keywords_prompt(config: dict, category_map: dict = None) -> str
 
 
 def classify_document(filename: str, title: str, module_name: str, content: str, config: dict) -> str:
-    """[Codex] Classify bounded local content and metadata without network calls."""
+    """Classify bounded local content and metadata without network calls."""
     from keyword_classifier import classify
     return classify(filename, title, module_name, content, config, get_folder_config(config))
 
@@ -583,7 +583,7 @@ Respond ONLY with the single category number (1 to {num_categories}). Do not wri
 
     try:
         if is_ollama:
-            # [Codex] A compact purpose checklist avoids repeated examples
+            # A compact purpose checklist avoids repeated examples
             # competing with arbitrary folder meanings in the local context.
             from keyword_classifier import folder_for_role
             concise_categories = "\n".join(
@@ -594,7 +594,7 @@ Respond ONLY with the single category number (1 to {num_categories}). Do not wri
             # contextual evidence, never a substitute after provider failure.
             candidate_folder = classify_document(file_name, fallback_title, module_name, extracted_text, config)
             candidate_number = next((number for number, name in category_map.items() if name == candidate_folder), None)
-            # [Codex] Separate document-purpose recognition from arbitrary
+            # Separate document-purpose recognition from arbitrary
             # destination names. Recompute routing for every configured hierarchy.
             role_routes = []
             for document_role in (
@@ -671,7 +671,7 @@ Choose target purpose yourself, then map it to a configured number. Return ONLY 
             if 1 <= parsed_num <= num_categories:
                 cat_num = parsed_num
 
-                # [Codex] Structured local classification follows purpose-aware rules;
+                # Structured local classification follows purpose-aware rules;
                 # legacy filename substring overrides must not rewrite its decision.
                 if not is_ollama and folders is DEFAULT_FOLDERS:
                     # Targeted guardrails: if AI categorized as generic/admin/other, refine using clear filename cues
@@ -729,7 +729,7 @@ Choose target purpose yourself, then map it to a configured number. Return ONLY 
     except Exception as e:
         print(f"   ⚠️ AI inference error: {e}")
 
-    # [Codex] Invalid selected-provider output is a failure, not keyword success.
+    # Invalid selected-provider output is a failure, not keyword success.
     raise ProviderError("The selected provider returned no valid classification. No fallback was attempted.")
 
 
@@ -896,7 +896,7 @@ def organize(output_dir: str, course_name: str, config_path: str):
     else:
         blueprint = CourseBlueprint(course_name=course_name, course_url="", output_dir=output_dir)
 
-    # [Codex] Relative exam age follows the archive's term, never today's date.
+    # Relative exam age follows the archive's term, never today's date.
     if getattr(blueprint, "term", None) and not config.get("course_term"):
         config["course_term"] = blueprint.term
     if not config.get("course_term"):
@@ -927,7 +927,7 @@ def organize(output_dir: str, course_name: str, config_path: str):
     # Detect exam subfolders
     exams_subfolder_map = detect_exam_subfolders(module_titles)
 
-    # [Codex] Flatten crawler-created subdirectories without discarding collisions.
+    # Flatten crawler-created subdirectories without discarding collisions.
     for root, dirs, files in os.walk(temp_dir, topdown=False):
         if root == temp_dir:
             continue
@@ -1056,7 +1056,7 @@ def organize(output_dir: str, course_name: str, config_path: str):
         save_folder = categorize_with_ai(temp_path, item_title, output_dir, config, course_name, module_titles, module_name=item_module)
 
 
-        # [Codex] Explicit custom hierarchies own the destination. Historical
+        # Explicit custom hierarchies own the destination. Historical
         # default-layout routing must not invent subfolders or overwrite it.
         custom_hierarchy = folders is not DEFAULT_FOLDERS
         if not custom_hierarchy:

@@ -1,4 +1,4 @@
-"""[Codex] Frozen generic role regressions for deployed configuration paths.
+"""Frozen generic role regressions for deployed configuration paths.
 
 These synthetic labels exercise published folder semantics, not Gemini parity.
 No personal archives or provider services are accessed.

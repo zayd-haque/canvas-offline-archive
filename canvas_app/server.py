@@ -174,7 +174,7 @@ async def browser_release(payload: BrowserTabRequest):
 
 @app.exception_handler(RequestValidationError)
 async def invalid_request(request, exc):
-    # [Codex] Never reflect request bodies, credentials, or validator context.
+    # Never reflect request bodies, credentials, or validator context.
     return JSONResponse({'detail': [{'loc': list(e['loc']), 'type': e['type'],
                                    'msg': 'Invalid request value'} for e in exc.errors()]}, status_code=422)
 
@@ -212,7 +212,7 @@ async def local_browser_policy(request: Request, call_next):
 
 @app.post('/api/auth/session')
 async def create_local_session(request: Request):
-    """[Codex] Exchange one launch fragment for an HttpOnly browser session."""
+    """Exchange one launch fragment for an HttpOnly browser session."""
     expected_origin = f'{request.url.scheme}://{request.headers.get("host")}'
     if request.headers.get('origin') != expected_origin:
         raise HTTPException(403, detail='Same-origin browser bootstrap required')
@@ -406,7 +406,7 @@ def get_course_data(course_name):
     key = (_catalog, course_name, info['path'], dependencies, optional_signature(info['blueprint_path']),
            optional_signature(Path(info['path']) / '.file_metadata.json'))
     data = _course_cache.get(key, lambda: render_course(course_name, info))
-    # [Codex] Time-dependent status must not share the HTML cache lifetime.
+    # Time-dependent status must not share the HTML cache lifetime.
     for assignment in data.get('assignments', []):
         assignment['status'] = calculate_assignment_status(assignment)
     data['grades'].update(calculate_grade_summary(data.get('assignments', [])))
@@ -414,7 +414,7 @@ def get_course_data(course_name):
 
 
 def syllabus_dependencies(info):
-    """[Codex] Contained, versioned physical fallback dependencies."""
+    """Contained, versioned physical fallback dependencies."""
     data = raw_course(info, fields=('syllabus', 'file_path_map'))
     syllabus = data.get('syllabus')
     if isinstance(syllabus, dict) and isinstance(syllabus.get('body'), str) and syllabus['body'].strip():
@@ -432,7 +432,7 @@ def syllabus_dependencies(info):
 
 
 def render_course(course_name, info):
-    """[Codex] Compile trusted HTML from archived source text, never archived HTML."""
+    """Compile trusted HTML from archived source text, never archived HTML."""
     data = raw_course(info)
     data['_course_meta'] = info
     if not data.get('term') and info.get('term'):
@@ -464,7 +464,7 @@ def render_course(course_name, info):
         except Exception:
             pass
 
-    # [Codex] Bound aggregate render work as well as individual document size.
+    # Bound aggregate render work as well as individual document size.
     remaining = 2 * 1024 * 1024
     def render_body(body):
         nonlocal remaining
@@ -487,7 +487,7 @@ def render_course(course_name, info):
             if isinstance(assign.get("body"), str):
                 assign["body_html"] = render_body(assign["body"])
             assign["status"] = calculate_assignment_status(assign)
-            # [Codex] Normalize repeated scraper display text once, on the server.
+            # Normalize repeated scraper display text once, on the server.
             due_text = assign.get('due') or assign.get('due_date') or ''
             due_text = re.sub(r'^Due\s+', '', due_text, flags=re.I) if isinstance(due_text, str) else ''
             words = due_text.split()
@@ -630,7 +630,7 @@ class SystemActionRequest(BaseModel):
 
 @app.get('/api/health')
 def api_health():
-    """[Codex] Readiness independent of archive enumeration or extraction."""
+    """Readiness independent of archive enumeration or extraction."""
     return {'status': 'ok'}
 
 
@@ -823,7 +823,7 @@ def api_get_course_timeline(
     return project_timeline(course_name, records, type=type, status=status, group=group, q=q, limit=limit, offset=offset)
 
 
-# [Codex] Credential settings reuse the downloader's configuration without exposing keys.
+# Credential settings reuse the downloader's configuration without exposing keys.
 _GEMINI_CONFIG_PATH = Path(__file__).resolve().parent.parent / "Canvas Module Downloader" / "config.json"
 _SECRETS_DIR = Path(__file__).resolve().parent.parent / "Canvas Module Downloader" / ".secrets"
 _SECRETS_PATH = _SECRETS_DIR / "credentials.json"
@@ -884,7 +884,7 @@ async def update_gemini_tier(req: GeminiTierRequest):
 
 
 def _update_config_values(values):
-    """[Codex] One atomic owner-only writer for all non-course configuration."""
+    """One atomic owner-only writer for all non-course configuration."""
     import tempfile
     temporary = None
     with _gemini_config_lock:
@@ -1042,7 +1042,7 @@ def update_keyword_rules(payload: dict = Body(...)):
     return {"success": True, "rules": validated_rules}
 
 
-# [Codex] The private directory is created by previews.py for this server run.
+# The private directory is created by previews.py for this server run.
 _SLIDE_PREVIEWS_CACHE_DIR = PREVIEW_CACHE_DIR
 
 
@@ -1528,7 +1528,7 @@ DEFAULT_HIERARCHY_CONFIG: Dict[str, Any] = {
 
 
 def _validate_folder_component(value):
-    """[Codex] Folder templates must remain one visible path component."""
+    """Folder templates must remain one visible path component."""
     if (not isinstance(value, str) or not value.strip() or value.strip().startswith('.')
             or len(value) > 240 or any(c in value for c in '/\\:*?"<>|')
             or any(ord(c) < 32 or ord(c) == 127 for c in value)):
@@ -1692,7 +1692,7 @@ def _broadcast_launcher_event(job: dict, event: dict):
 
 
 async def _run_launcher_daemon(job: dict, req: LauncherStartRequest):
-    """[Codex] A job owns its child processes for its entire lifetime."""
+    """A job owns its child processes for its entire lifetime."""
     try:
         if not job.get('cancelled'):
             await _run_launcher_body(job, req)
@@ -1777,7 +1777,7 @@ async def _run_launcher_body(job: dict, req: LauncherStartRequest):
     if req.course_url:
         cmd_args += ["--url", req.course_url]
 
-    # [Codex] Existing archives use their catalog root, never a guessed Desktop path.
+    # Existing archives use their catalog root, never a guessed Desktop path.
     existing_course_dir = job.get("existing_course_dir")
     if existing_course_dir and not Path(existing_course_dir).is_dir():
         raise ValueError("Selected course directory is no longer available")
@@ -2186,7 +2186,7 @@ async def api_launcher_start(req: LauncherStartRequest):
     cleaned_name = _validate_folder_component(req.course_name)
     existing_course_dir = None
     if req.existing_course:
-        # [Codex] Resolve a catalog identity rather than accepting a client filesystem path.
+        # Resolve a catalog identity rather than accepting a client filesystem path.
         info = course_info(req.existing_course)
         existing_path = Path(info["path"]).expanduser().resolve()
         if not existing_path.is_dir():
@@ -2266,7 +2266,7 @@ async def api_launcher_start(req: LauncherStartRequest):
         # Browser authentication uses one persistent profile shared by all courses.
         if active:
             raise HTTPException(429, detail='Another pipeline is running; wait for it to finish')
-        # [Codex] Persist launcher settings only after this job is admitted.
+        # Persist launcher settings only after this job is admitted.
         # Hold admission while saving so rejected concurrent starts stay read-only.
         if req.gemini_tier:
             _store_gemini_settings(tier=req.gemini_tier)

@@ -1,4 +1,4 @@
-"""[Codex] Corpus scoring distinguishes model agreement from gold accuracy."""
+"""Corpus scoring distinguishes model agreement from gold accuracy."""
 import tests
 import contextlib
 import io

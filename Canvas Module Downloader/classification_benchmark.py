@@ -1,4 +1,4 @@
-"""[Codex] Benchmark evaluation harness and agreement measurement."""
+"""Benchmark evaluation harness and agreement measurement."""
 import argparse
 import json
 import sys
@@ -71,7 +71,7 @@ def evaluate(records: List[Dict[str, Any]], provider: str = "rules", model: Opti
     results = []
     failures = 0
     correct = 0
-    # [Codex] A benchmark must not inherit private course folders or routing
+    # A benchmark must not inherit private course folders or routing
     # rules. Provider credentials remain resolved by the provider interface.
     config = {}
     config["llm_provider"] = provider

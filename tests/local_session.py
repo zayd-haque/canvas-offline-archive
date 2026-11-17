@@ -1,4 +1,4 @@
-"""[Codex] Authenticate synthetic ASGI test clients through the real endpoint."""
+"""Authenticate synthetic ASGI test clients through the real endpoint."""
 _COOKIES = {}
 
 

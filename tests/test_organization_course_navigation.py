@@ -1,4 +1,4 @@
-"""[Codex] Course navigation, consent, empty files and described student work."""
+"""Course navigation, consent, empty files and described student work."""
 import tests
 import itertools
 import unittest

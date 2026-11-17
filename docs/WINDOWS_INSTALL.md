@@ -1,4 +1,4 @@
-# Canvas Offline Archive: Windows installation [Codex]
+# Canvas Offline Archive: Windows installation
 
 This source release runs locally on Windows 10 or 11. Previously captured courses can be viewed offline; new Canvas captures need your authorized login and an internet connection.
 

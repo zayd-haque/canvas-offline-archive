@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  // [Codex] Never initialize data requests or actions without a local session.
+  // Never initialize data requests or actions without a local session.
   if (!await window.canvasSessionReady) {
     showLocalSessionRequired();
     return;
@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     initAllCustomDropdowns();
   }
   initOnboarding();
-  // [Codex] Delegation supports rerendered buttons without inline script handlers.
+  // Delegation supports rerendered buttons without inline script handlers.
   document.addEventListener("click", event => {
     const button = event.target.closest("[data-open-settings]");
     if (!button) return;

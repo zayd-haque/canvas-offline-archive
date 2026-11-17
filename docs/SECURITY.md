@@ -18,7 +18,7 @@ Keyword Heuristics runs locally. Ollama classification uses a model you install 
 
 Captured courses remain in the destination you chose. Removing a scan root hides matching courses from the catalog but does not delete their files. Search indexes and previews are local caches. Older archives may contain `.session_cookies.json`; inspect and remove any credential exports before sharing an archive. If credentials were shared, revoke them at the issuing service.
 
-## File operations and update recovery [Codex]
+## File operations and update recovery
 
 The app writes to selected course destinations, its configuration, private browser profile, and local caches. Generated knowledge/homework files preserve earlier versions in `.generated-backups`. Updates replace packaged application files and retain originals in private `.canvas-recovery-*` directories. Interrupted updates are recovered before launch; retain any pending recovery directory. Backups can contain personal edits and should not be shared blindly.
 

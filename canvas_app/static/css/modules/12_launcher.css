@@ -679,7 +679,7 @@
   cursor: not-allowed;
 }
 
-/* [Codex] Keep decorative button icons aligned regardless of SVG library size. */
+/* Keep decorative button icons aligned regardless of SVG library size. */
 :is(.btn-launcher-primary, .btn-launcher-secondary, .btn-wizard-next, .btn-wizard-back, .btn-completion-view, .btn-completion-reveal, .terminal-btn-cancel) .btn-icon {
   display: inline-flex;
   align-items: center;
@@ -1911,7 +1911,7 @@ body.dark-mode .btn-launcher-secondary:hover {
   border-color: #3F3F46;
 }
 
-/* [Codex] Shared method guidance in Add Course, Rescan, and Settings. */
+/* Shared method guidance in Add Course, Rescan, and Settings. */
 .ai-engine-reliability {
   margin: 0 0 8px;
   color: var(--text-main);
@@ -1952,7 +1952,7 @@ body.dark-mode .btn-launcher-secondary:hover {
   line-height: 1.5;
 }
 
-/* [Codex] Footer actions share one height; the primary action must not squeeze Back. */
+/* Footer actions share one height; the primary action must not squeeze Back. */
 .wizard-actions-bar :is(.btn-wizard-back, .btn-wizard-next, .btn-launcher-primary) {
   display: inline-flex;
   align-items: center;

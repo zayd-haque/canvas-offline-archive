@@ -1,4 +1,4 @@
-"""[Codex] Windows branches exercised without a Windows host or user archive."""
+"""Windows branches exercised without a Windows host or user archive."""
 
 import os
 import sys

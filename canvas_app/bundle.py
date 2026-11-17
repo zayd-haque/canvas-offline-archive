@@ -23,7 +23,7 @@ JS_SRC_DIR = JS_DIR / "src"
 
 
 def _bundle(source, target, extension, comment):
-    """[Codex] Preserve unchanged mtimes; publish complete bundles atomically."""
+    """Preserve unchanged mtimes; publish complete bundles atomically."""
     modules = sorted(source.glob('*.' + extension))
     if not modules:
         if target.is_file():

@@ -50,7 +50,7 @@ body {
   overflow: hidden;
 }
 
-/* [Codex] Public locked shell contains no course data. */
+/* Public locked shell contains no course data. */
 .local-session-required { max-width: 640px; margin: 12vh auto; padding: 32px; color: var(--text-main); }
 .local-session-required p { line-height: 1.6; }
 
@@ -200,7 +200,7 @@ body {
   font-size: 15px;
   max-width: calc(50% - 215px);
   min-width: 0;
-  /* [Codex] Popup menus must escape the breadcrumb; labels clip themselves. */
+  /* Popup menus must escape the breadcrumb; labels clip themselves. */
   overflow: visible;
   z-index: 5;
 }
@@ -216,7 +216,7 @@ body {
   flex-shrink: 1;
 }
 
-/* [Codex] Bound the upgraded trigger and keep long course names readable in its popup. */
+/* Bound the upgraded trigger and keep long course names readable in its popup. */
 .course-selector-wrapper .custom-select-container {
   max-width: 220px;
 }
@@ -336,7 +336,7 @@ body {
   transition: all 0.1s ease;
 }
 
-/* [Codex] Sidebar icon slots remain square for every library glyph. */
+/* Sidebar icon slots remain square for every library glyph. */
 .course-sidebar-item .item-icon {
   display: inline-flex;
   align-items: center;
@@ -2716,7 +2716,7 @@ html[data-theme="dark"] .syllabus-action-btn:hover {
   line-height: 1.7;
 }
 
-/* [Codex] Expanded preferences, matching the offline app theme. */
+/* Expanded preferences, matching the offline app theme. */
 .settings-modal-container { width: 760px; max-height: calc(100dvh - 40px); background: var(--bg-card); color: var(--text-main); }
 .settings-modal-header, .settings-modal-footer { flex-shrink: 0; }
 .settings-modal-body { min-height: 0; max-height: none; }
@@ -5321,7 +5321,7 @@ html[data-theme="dark"] .preview-modal-body {
   background: #0D0D0F !important;
 }
 
-/* [Codex] Keep report actions reachable in narrow app windows. */
+/* Keep report actions reachable in narrow app windows. */
 .grade-report-banner { flex-wrap: wrap; }
 .grade-report-banner > div { min-width: 0; overflow-wrap: anywhere; }
 .grade-report-actions { flex-wrap: wrap; }
@@ -7854,7 +7854,7 @@ body.dark-mode .media-card-footer {
   border-color: #27272A;
 }
 
-/* [Codex & Antigravity] Keep search and indexing controls inside narrow desktop windows. */
+/* Keep search and indexing controls inside narrow desktop windows. */
 @media (max-width: 1000px) {
   .course-header { flex-wrap: wrap; gap: 10px; }
   .breadcrumb-area { width: 100%; max-width: 100%; min-width: 0; }
@@ -9584,7 +9584,7 @@ body:not(.dark-mode) .filter-search-group-header {
   cursor: not-allowed;
 }
 
-/* [Codex] Keep decorative button icons aligned regardless of SVG library size. */
+/* Keep decorative button icons aligned regardless of SVG library size. */
 :is(.btn-launcher-primary, .btn-launcher-secondary, .btn-wizard-next, .btn-wizard-back, .btn-completion-view, .btn-completion-reveal, .terminal-btn-cancel) .btn-icon {
   display: inline-flex;
   align-items: center;
@@ -10816,7 +10816,7 @@ body.dark-mode .btn-launcher-secondary:hover {
   border-color: #3F3F46;
 }
 
-/* [Codex] Shared method guidance in Add Course, Rescan, and Settings. */
+/* Shared method guidance in Add Course, Rescan, and Settings. */
 .ai-engine-reliability {
   margin: 0 0 8px;
   color: var(--text-main);
@@ -10857,7 +10857,7 @@ body.dark-mode .btn-launcher-secondary:hover {
   line-height: 1.5;
 }
 
-/* [Codex] Footer actions share one height; the primary action must not squeeze Back. */
+/* Footer actions share one height; the primary action must not squeeze Back. */
 .wizard-actions-bar :is(.btn-wizard-back, .btn-wizard-next, .btn-launcher-primary) {
   display: inline-flex;
   align-items: center;
@@ -11020,7 +11020,7 @@ body.dark-mode .btn-launcher-secondary:hover {
   gap: 8px;
 }
 
-/* [Codex] Keep operation-card icons square and centered. */
+/* Keep operation-card icons square and centered. */
 .rescan-op-icon {
   width: 20px;
   height: 20px;
@@ -11081,7 +11081,7 @@ body.dark-mode .btn-launcher-secondary:hover {
 }
 
 /* --- Module: 14_onboarding.css --- */
-/* [Codex] First-run guide */
+/* First-run guide */
 .onboarding-nav-button { width: 100%; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .onboarding-nav-button .nav-icon { font-size: 20px; font-weight: 700; }
 .onboarding-overlay {

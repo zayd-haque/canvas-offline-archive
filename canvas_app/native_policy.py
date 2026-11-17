@@ -1,4 +1,4 @@
-"""[Codex] Native opening is limited to passive course documents."""
+"""Native opening is limited to passive course documents."""
 from pathlib import Path
 
 DOCUMENT_EXTENSIONS = frozenset({

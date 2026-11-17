@@ -1366,7 +1366,7 @@ def process_text_only_pages(page, module_links: list, temp_dir: str) -> list:
 
 
 def _login_required(page):
-    """[Codex] Inspect auth paths and forms without matching return-URL query text."""
+    """Inspect auth paths and forms without matching return-URL query text."""
     parsed = urlparse(page.url)
     auth_path = re.search(r'/(?:login|signin|shibboleth|saml|cas)(?:/|$)', parsed.path, re.I)
     auth_host = (parsed.hostname or '').split('.')[0].lower() in {'sso', 'idp', 'shibboleth', 'shb'}
@@ -1374,7 +1374,7 @@ def _login_required(page):
 
 
 def check_and_prompt_login(page, timeout: int = 240, course_url: str = "") -> bool:
-    """[Codex] Pump Playwright events while awaiting verified Canvas navigation.
+    """Pump Playwright events while awaiting verified Canvas navigation.
 
     False means no login was needed, True means login completed. Failure raises,
     preventing callers from scraping a login page after the deadline.
@@ -1645,7 +1645,7 @@ def launch(course_url: str, output_dir: str, course_name: str = "", headless: bo
                     except Exception:
                         pass
 
-        # [Codex] Keep scoped authentication in memory, outside course archives.
+        # Keep scoped authentication in memory, outside course archives.
         if cookie_sink is not None:
             cookie_sink.extend(context.cookies([course_url]))
 

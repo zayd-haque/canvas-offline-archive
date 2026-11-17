@@ -1,4 +1,4 @@
-"""[Codex] Generated reports remain intact and out of organizer staging."""
+"""Generated reports remain intact and out of organizer staging."""
 import tests
 import ast
 import json

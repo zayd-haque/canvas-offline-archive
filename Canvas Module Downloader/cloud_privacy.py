@@ -1,4 +1,4 @@
-"""[Codex] Best-effort direct-identifier reduction for outbound cloud prompts.
+"""Best-effort direct-identifier reduction for outbound cloud prompts.
 
 This is not anonymization: unlabelled names, indirect identifiers and personal
 narratives can remain. Do not use it as permission to submit confidential data.

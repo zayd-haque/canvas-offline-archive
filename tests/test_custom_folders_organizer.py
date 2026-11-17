@@ -19,7 +19,7 @@ class TestCustomFoldersOrganizer(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
         self.course_name = "TEST 101"
-        # [Codex] Match the supported named course root containment contract.
+        # Match the supported named course root containment contract.
         self.course_root = os.path.join(self.temp_dir, self.course_name)
         self.output_dir = os.path.join(self.course_root, f"{self.course_name} Lectures & Resources")
         os.makedirs(self.output_dir, exist_ok=True)
@@ -59,7 +59,7 @@ class TestCustomFoldersOrganizer(unittest.TestCase):
             {"id": "c2", "name": "Worksheets", "types": ["discussions"]}
         ]
         prompt = organizer.build_categories_prompt(custom)
-        # [Codex] Every category exposes both configured purpose tags and
+        # Every category exposes both configured purpose tags and
         # descriptive guidance, including categories without a description.
         lines = prompt.splitlines()
         self.assertTrue(lines[0].startswith("1. Slides:"))

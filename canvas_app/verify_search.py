@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""[Codex] Opt-in real-archive search smoke test with a disposable local index.
+"""Opt-in real-archive search smoke test with a disposable local index.
 
 Example: python3 canvas_app/verify_search.py --course '/path/to/archive' --query 'exam 1'
 No source files or persistent app indexes are modified. OCR is opt-in because it

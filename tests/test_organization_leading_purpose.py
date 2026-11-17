@@ -1,4 +1,4 @@
-"""[Codex] Leading document purpose beats incidental topic and generic titles."""
+"""Leading document purpose beats incidental topic and generic titles."""
 import tests
 import unittest
 from tests.organization_benchmark import organizer, FOLDERS

@@ -892,7 +892,7 @@ html[data-theme="dark"] .preview-modal-body {
   background: #0D0D0F !important;
 }
 
-/* [Codex] Keep report actions reachable in narrow app windows. */
+/* Keep report actions reachable in narrow app windows. */
 .grade-report-banner { flex-wrap: wrap; }
 .grade-report-banner > div { min-width: 0; overflow-wrap: anywhere; }
 .grade-report-actions { flex-wrap: wrap; }

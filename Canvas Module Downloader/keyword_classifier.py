@@ -1,4 +1,4 @@
-"""[Codex] Offline, source-aware academic document classification.
+"""Offline, source-aware academic document classification.
 
 Signals are generic document roles, never course-specific vocabulary. Strong
 document identity outranks incidental words in body text and mixed week modules.
@@ -30,7 +30,7 @@ PATTERNS = {
 
 def signals(text):
     text = normalize(text)
-    # [Codex] Negated answer evidence is not a supplied answer document.
+    # Negated answer evidence is not a supplied answer document.
     text = re.sub(r"\b(?:no|without|not including|not providing|does not include|does not provide)\s+(?:(?:supplied|provided|worked|official)\s+)?(?:answer keys?|answers?|solutions?|keys?)\b", " ", text)
     found = {key: bool(re.search(pattern, text)) for key, pattern in PATTERNS.items()}
     # Final deliverables and conceptual answer/key words are not examinations/keys.
@@ -96,7 +96,7 @@ def role(sig):
 
 
 def corroborated_purpose(content):
-    """[Codex] Resolve positive leading-purpose evidence, not topical nouns.
+    """Resolve positive leading-purpose evidence, not topical nouns.
 
     Assessment + requested intellectual work + delivery is a task signature;
     navigation and administrative instructions require their own positive cues.
@@ -127,7 +127,7 @@ def corroborated_purpose(content):
 
 
 def folder_description_role(description):
-    """[Codex] A blank response space is not submitted student work."""
+    """A blank response space is not submitted student work."""
     meaning = re.sub(r"\b(?:must\s+not|not|no|without|excluding|exclude)\b[^.;\n)]*",
                      " ", str(description or ""), flags=re.I)
     sig = signals(meaning)
@@ -163,7 +163,7 @@ def folder_for_role(category, folders):
     for folder in folders:
         if folder.get("description") and folder_description_role(folder["description"]) == category:
             return folder["name"]
-    # [Codex] Explicit destination guidance outranks inherited path words.
+    # Explicit destination guidance outranks inherited path words.
     # An Exams/Reading bin can hold readings when its description says so;
     # the parent directory must not turn every sibling into an examination.
     for folder in folders:
@@ -259,11 +259,11 @@ def classify(filename, title, module_name, content, config, folders):
             selected = selected.copy()
             selected["practice"] = True
     selected_role = role(selected)
-    # [Codex] Document purpose can be stronger than a delivery wrapper or an
+    # Document purpose can be stronger than a delivery wrapper or an
     # incidental word deep in the text. These cues are discipline independent.
     front = normalize(str(content or "")[:1800])
     full = normalize(str(content or "")[:8000])
-    # [Codex] A specific worksheet heading is stronger than 'handout',
+    # A specific worksheet heading is stronger than 'handout',
     # which only describes the delivery format.
     if heading["worksheet"] and re.search(r"\bhandouts?\b", identity) and not any(primary[k] for k in ("homework", "exam", "solution")):
         selected_role = role(heading)
@@ -278,7 +278,7 @@ def classify(filename, title, module_name, content, config, folders):
         selected_role = "other"
     if not str(content or "").strip() and re.search(r"\b(?:empty|untitled) (?:notes?|document|file)\b", identity):
         selected_role = "other"
-    # [Codex] Identify exercise sheets by repeated response prompts, and
+    # Identify exercise sheets by repeated response prompts, and
     # explanatory teaching documents by corroborating prose. These require
     # multiple signals rather than discipline-specific topic dictionaries.
     response_prompts = len(re.findall(
@@ -307,7 +307,7 @@ def classify(filename, title, module_name, content, config, folders):
         selected_role = "homework"
     if not any(primary[k] for k in ("admin", "exam", "solution", "lecture", "slides", "worksheet")) and re.search(r"\b(?:assignment prompt|assigned\b.{0,90}\btask)\b", front[:500]) and re.search(r"\bsubmit\b", front):
         selected_role = "homework"
-    # [Codex] Numbered class/session captures need corroborating instructional
+    # Numbered class/session captures need corroborating instructional
     # evidence: a generic class roster, class policy or unrelated "class" file
     # is not automatically a lecture. In-class questions remain slide content.
     numbered_session = bool(re.search(r"\b(?:class|session)\s*\d+\b", identity))
@@ -361,7 +361,7 @@ def classify(filename, title, module_name, content, config, folders):
             selected_role = "other"
         elif selected_role == "discussion" and re.search(r"\bdiscussion of\b", front) and not re.search(r"\b(?:worksheet|recitation|tutorial|question sheet|discussion questions)\b", identity + " " + front):
             selected_role = "other"
-    # [Codex] Specific leading purpose evidence refines generic labels such as
+    # Specific leading purpose evidence refines generic labels such as
     # "answers", "overview" or "grading criteria" without rewriting named tasks.
     if heading["exam"] and heading["solution"] and not any(
             primary[k] for k in ("homework", "worksheet", "lecture", "slides", "admin")):
@@ -376,14 +376,14 @@ def classify(filename, title, module_name, content, config, folders):
                                      normalize(lines[0] if lines else "")) and not re.search(
             r"\b(?:syllabus|course overview|orientation|announcement|notice|schedule|policy|policies)\b", identity):
         selected_role = "lecture"
-    # [Codex] Technical upload/access guidance is administration, not a task.
+    # Technical upload/access guidance is administration, not a task.
     leading_heading = normalize(lines[0] if lines else "")
     if re.search(r"\b(?:submission|upload|portal)\b", identity + " " + leading_heading) and re.search(
             r"\b(?:guide|instructions|tutorial|help|access|confirmation steps)\b", identity + " " + leading_heading) and re.search(
             r"\b(?:upload menu|confirmation (?:page|receipt|message)|website navigation|submission button|log in|login|sign in|file types?|portal)\b", front) and not re.search(
             r"\b(?:write|compose|design|analy[sz]e|compare|calculate)\b", front):
         selected_role = "admin"
-    # [Codex] Course website help and course visit permissions are admin,
+    # Course website help and course visit permissions are admin,
     # while substantive learning tasks and unrelated travel remain distinct.
     if re.match(r"^course (?:website|site|platform) (?:instructions|help|guide)\b", leading_heading) and re.search(
             r"\b(?:open|navigate|click|view)\b", front) and not re.search(
@@ -391,11 +391,11 @@ def classify(filename, title, module_name, content, config, folders):
         selected_role = "admin"
     if re.match(r"^course\b.{0,60}\b(?:visit|trip|observation)\b.{0,40}\b(?:consent|permission|waiver)\b", leading_heading):
         selected_role = "admin"
-    # [Codex] Resolve corroborated evidence after all incidental body overrides.
+    # Resolve corroborated evidence after all incidental body overrides.
     # A returned student's responses are not an instructor key or blank paper.
     if primary["student_submission"] or heading["student_submission"]:
         selected_role = "student_quiz" if (primary["exam"] or heading["exam"]) else "homework"
-    # [Codex] A leading assignment heading plus a deliverable outranks a
+    # A leading assignment heading plus a deliverable outranks a
     # topical title such as policy analysis, not an actual policy notice.
     elif re.match(r"^(?:assignment|homework|assigned task)\b", leading_heading) and re.search(
             r"\b(?:submit|upload|hand in)\b", front) and not heading["solution"]:
@@ -406,7 +406,7 @@ def classify(filename, title, module_name, content, config, folders):
     elif not any(primary[k] for k in ("exam", "solution", "lecture", "slides", "worksheet")) and re.search(
             r"\bsubmit\s+(?:a|your|the)\s+(?:\w+\s+){0,2}(?:essay|report|analysis|portfolio|proposal)\b", front):
         selected_role = "homework"
-    # [Codex] Leading explicit practice-paper evidence refines a generic quiz
+    # Leading explicit practice-paper evidence refines a generic quiz
     # title. A negated current-paper reference cannot undo that identity.
     if primary["exam"] and heading["exam"] and heading["practice"] and re.match(
             r"^(?:practice|sample|mock|past|previous)\s+(?:quiz|exam|examination|midterm|test)\b", leading_heading):
@@ -417,7 +417,7 @@ def classify(filename, title, module_name, content, config, folders):
     # "Discussion of" names a topic; dedicated discussion sections still win.
     if re.search(r"\bdiscussion of\b", identity) and heading["lecture"] and not module["discussion"]:
         selected_role = "lecture"
-    # [Codex] Resolve corroborated leading purpose separately from incidental
+    # Resolve corroborated leading purpose separately from incidental
     # topic words. Preserve dedicated discussion assignments and exact keys.
     strong_purpose = corroborated_purpose(content)
     if strong_purpose:

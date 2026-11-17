@@ -1,4 +1,4 @@
-"""[Codex] Bounded offline retrieval and ranking; no model, network, or course vocabulary."""
+"""Bounded offline retrieval and ranking; no model, network, or course vocabulary."""
 import html
 import re
 import sqlite3

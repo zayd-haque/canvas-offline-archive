@@ -66,7 +66,7 @@ class TestLauncherAPI(unittest.TestCase):
         server._TEST_LAUNCHER_RUNNER = None
 
     def test_existing_course_uses_catalog_root_and_disk_identity(self):
-        # [Codex] A display title and configured default must not redirect a rescan.
+        # A display title and configured default must not redirect a rescan.
         with tempfile.TemporaryDirectory() as td:
             archive = Path(td) / "custom library" / "archive-folder"
             archive.mkdir(parents=True)
@@ -93,7 +93,7 @@ class TestLauncherAPI(unittest.TestCase):
             self.assertNotIn("--output-dir", captured)
 
     def test_existing_course_missing_rejected_before_launch(self):
-        # [Codex] Stale catalog selections cannot fall back to a default directory.
+        # Stale catalog selections cannot fall back to a default directory.
         with patch.object(server, "discover_courses", return_value={"Missing": {"path": "/nonexistent-synthetic-archive"}}):
             with self.assertRaises(server.HTTPException) as error:
                 asyncio.run(server.api_launcher_start(server.LauncherStartRequest(course_name="Missing", existing_course="Missing", mode="organize_only")))
@@ -303,7 +303,7 @@ class TestLauncherAPI(unittest.TestCase):
             self.assertIn(captured_args[0], [sys.executable, str(Path(server.__file__).resolve().parent.parent / ".venv" / "bin" / "python")])
 
     def test_launcher_does_not_accept_credentials(self):
-        # [Codex] Saving keys uses the dedicated bounded endpoint only.
+        # Saving keys uses the dedicated bounded endpoint only.
         async def runner(job, req):
             job['status'] = 'done'
         server._TEST_LAUNCHER_RUNNER = runner

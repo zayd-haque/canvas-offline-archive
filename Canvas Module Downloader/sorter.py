@@ -61,7 +61,7 @@ def _get_work_dir(config: dict, course_name: str, output_dir: str = "") -> str:
     template = hier.get("work_folder", "{course} Work") if isinstance(hier, dict) else "{course} Work"
     folder_name = template.replace("{course}", course_name) if template else f"{course_name} Work"
     if output_dir:
-        # [Codex] Compact layouts use the course itself as output, not its parent.
+        # Compact layouts use the course itself as output, not its parent.
         course_root = resolve_course_root(output_dir, course_name)
         return contained_path(course_root, folder_name)
     return os.path.expanduser(os.path.join("~/Desktop", course_name, folder_name))
@@ -94,7 +94,7 @@ def sort_gigantic_folders(output_dir: str, course_name: str, config: dict, thres
     # Pre-collect candidate directories to avoid modifying directory structure during os.walk
     gigantic_dirs = []
     for root, dirs, files in os.walk(output_dir):
-        # [Codex] Recovery originals and internal metadata are never classification inputs.
+        # Recovery originals and internal metadata are never classification inputs.
         dirs[:] = [name for name in dirs if not name.startswith('.')]
         if ".temp_downloads" in root:
             dirs[:] = []

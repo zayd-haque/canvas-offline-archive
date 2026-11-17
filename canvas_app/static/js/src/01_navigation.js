@@ -25,7 +25,7 @@ async function loadCourseList({ preserveView = false } = {}) {
       els.courseSelector.appendChild(opt);
     });
 
-    // [Codex] Preserve user selection across refreshes without course-specific defaults.
+    // Preserve user selection across refreshes without course-specific defaults.
     const defaultCourse = state.courses.find(c => c.name === state.currentCourse) || state.courses[0];
     els.courseSelector.value = defaultCourse.name;
     if (typeof upgradeSelectToCustomDropdown === "function" && els.courseSelector) {

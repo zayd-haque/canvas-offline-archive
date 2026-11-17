@@ -1,4 +1,4 @@
-"""[Codex] Build a source-only macOS or Windows release package.
+"""Build a source-only macOS or Windows release package.
 
 Only explicit application paths are eligible. Git supplies the file list so
 ignored local configuration, sessions, course folders, and caches are never read.
@@ -75,7 +75,7 @@ def package_files() -> list[tuple[str, Path]]:
 
 
 def release_path(name: str, platform: str) -> str:
-    """[Codex] Downloads show one launcher and one implementation folder."""
+    """Downloads show one launcher and one implementation folder."""
     launcher = ("Open Canvas Offline Archive.command" if platform == "macos"
                 else "Open Canvas Offline Archive Windows.cmd")
     if name != launcher:
@@ -101,7 +101,7 @@ def main() -> int:
                          if args.platform == "windows" else
                          {"bootstrap_windows.py", "bootstrap_windows.ps1", "Open Canvas Offline Archive Windows.cmd"})
     files = [(name, source) for name, source in files if name not in platform_excludes]
-    # [Codex] Build privately, then publish without replacing an existing file
+    # Build privately, then publish without replacing an existing file
     # or following an output symlink, including one created during the build.
     fd, temporary = tempfile.mkstemp(prefix='.canvas-release-', dir=output.parent)
     try:

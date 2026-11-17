@@ -1,4 +1,4 @@
-// [Codex] Exchange a launcher-only fragment for an HttpOnly local session.
+// Exchange a launcher-only fragment for an HttpOnly local session.
 // Tokens never enter storage, query strings, rendered content, or console output.
 window.canvasSessionReady = (async () => {
   let token = new URLSearchParams(window.location.hash.slice(1)).get("bootstrap");

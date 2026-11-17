@@ -1,4 +1,4 @@
-"""[Codex] Browser cookie scope and immutable recovery regressions; synthetic only."""
+"""Browser cookie scope and immutable recovery regressions; synthetic only."""
 import tests
 import ast
 import contextlib

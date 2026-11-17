@@ -1,4 +1,4 @@
-"""[Codex] Explicit Gemini and local-provider classification choices; synthetic only."""
+"""Explicit Gemini and local-provider classification choices; synthetic only."""
 import tests
 from pathlib import Path
 import sys
@@ -24,7 +24,7 @@ class CloudSelectionFollowupTests(unittest.TestCase):
                 '_private_reclassification': private_reclassification,
                 'ollama_model': 'synthetic-local-model',
             }
-            # [Codex] Local classification now uses the constrained JSON contract.
+            # Local classification now uses the constrained JSON contract.
             response = '{"category":2}' if provider == 'ollama' else '2'
             with patch.object(organizer, 'query_llm', return_value=response) as query, \
                  patch.object(organizer, 'check_and_reset_ollama_ram'), \
@@ -35,7 +35,7 @@ class CloudSelectionFollowupTests(unittest.TestCase):
             prompt, submitted_config = query.call_args.args[:2]
             self.assertIs(submitted_config, config)
             self.assertIn('SYNTHETIC STUDENT COURSEWORK CONTENT', prompt)
-            # [Codex] Check target module data without coupling cloud/local
+            # Check target module data without coupling cloud/local
             # prompts to the same label typography.
             self.assertRegex(prompt, r'(?m)^\s*(?:-\s*)?(?:Canvas )?Module:\s*"?Work"?\s*$')
             if provider == 'ollama':

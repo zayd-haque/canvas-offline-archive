@@ -1,4 +1,4 @@
-// [Codex] Exercise real renderers and shared pipeline transport using synthetic data.
+// Exercise real renderers and shared pipeline transport using synthetic data.
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -45,7 +45,7 @@ assert.equal(run('rescanState.finishedCourse'),null);
   assert.equal(requests[0].url,'/api/settings/gemini-key');
   assert(!JSON.stringify(requests[1]).includes('test-mock-key'));
   assert.equal(run('job.geminiApiKey'),'');
-  // [Codex] Dispatch the real bound click: calling saveGeminiKey directly would
+  // Dispatch the real bound click: calling saveGeminiKey directly would
   // miss a disconnected Settings button. All credentials here are dummy data.
   const storageWrites=[];
   ctx.localStorage.setItem=(...args)=>storageWrites.push(args);

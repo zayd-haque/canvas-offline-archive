@@ -1,4 +1,4 @@
-"""[Codex] Purpose boundaries exposed by independently authored October 11 cases."""
+"""Purpose boundaries exposed by independently authored October 11 cases."""
 import tests
 import unittest
 from tests.organization_benchmark import organizer, FOLDERS

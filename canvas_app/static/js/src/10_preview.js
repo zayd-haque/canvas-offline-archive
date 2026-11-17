@@ -1,4 +1,4 @@
-// [Codex] Ignore late document responses after navigation, close, or course changes.
+// Ignore late document responses after navigation, close, or course changes.
 let previewGeneration = 0;
 let previewController = null;
 

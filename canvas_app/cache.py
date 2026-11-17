@@ -1,4 +1,4 @@
-"""[Codex] Bounded, thread-safe derived-data cache with same-key work sharing."""
+"""Bounded, thread-safe derived-data cache with same-key work sharing."""
 import copy
 import json
 import threading
@@ -72,7 +72,7 @@ class DerivedCache:
 
 
 def _canonical_cache_path(path):
-    """[Codex] Expand only macOS root-owned standard temporary aliases."""
+    """Expand only macOS root-owned standard temporary aliases."""
     import os
     import sys
     from pathlib import Path
@@ -89,7 +89,7 @@ def _canonical_cache_path(path):
 
 
 def ensure_private_directory(path):
-    """[Codex] Existing cache directories must also be owned and private."""
+    """Existing cache directories must also be owned and private."""
     import os
     import stat
     from pathlib import Path
@@ -122,7 +122,7 @@ def ensure_private_directory(path):
 
 
 def validate_cache_database(path):
-    """[Codex] SQLite must not redirect its database or sidecar writes."""
+    """SQLite must not redirect its database or sidecar writes."""
     from pathlib import Path
     path = Path(path)
     ensure_private_directory(path.parent)

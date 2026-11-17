@@ -1,4 +1,4 @@
-// [Codex] Shared comparative guidance; development evidence is not a course accuracy guarantee.
+// Shared comparative guidance; development evidence is not a course accuracy guarantee.
 function organizationMethodDescription(provider) {
   const descriptions = {
     gemini: "Cloud AI for unfamiliar wording and custom folders. Most consistent in our synthetic tests; review folder choices.",
@@ -235,7 +235,7 @@ function saveSettingsFromUI() {
   closeSettingsModal();
 }
 
-// [Codex] Persist non-secret preferences; credential updates use a dedicated API.
+// Persist non-secret preferences; credential updates use a dedicated API.
 let settingsReturnFocus = null;
 let settingsRequestGeneration = 0;
 let settingsKeySaving = false;
@@ -1958,7 +1958,7 @@ function initExtendedSettings() {
     e.target.textContent = input.type === "password" ? "Show" : "Hide";
     e.target.setAttribute("aria-pressed", String(input.type === "text"));
   });
-  // [Codex] Connect the explicit credential save action to its guarded writer.
+  // Connect the explicit credential save action to its guarded writer.
   document.getElementById("settings-key-save").addEventListener("click", saveGeminiKey);
   const btnIdxRefresh = document.getElementById("settings-index-refresh");
   if (btnIdxRefresh) btnIdxRefresh.addEventListener("click", () => refreshSettingsIndex());
@@ -2284,7 +2284,7 @@ async function refreshSettingsIndex(rebuild = false) {
   const generation = ++settingsIndexGeneration;
   const status = document.getElementById("settings-index-status");
   const button = document.getElementById("settings-index-rebuild");
-  // [Codex] Current settings layouts may expose indexing only in the header.
+  // Current settings layouts may expose indexing only in the header.
   if (!status || !button) return;
   button.disabled = !course || rebuild;
   if (!course) { status.textContent = "Select a course to view or rebuild its search index."; return; }
@@ -2324,7 +2324,7 @@ function handleFileClick(fileName, filePath, fileList = null, fileIndex = -1) {
   }
 }
 
-// [Codex] Archived URL metadata must never become executable navigation.
+// Archived URL metadata must never become executable navigation.
 function safeExternalUrl(value) {
   if (typeof value !== "string" || /[\u0000-\u0020\u007f]/.test(value)) return "#";
   try {
@@ -2374,7 +2374,7 @@ function escapeRegExp(string) {
 function highlightQueryInText(text, query, allowMarks = false) {
   if (!text) return "";
   if (!query) return escapeHtml(text);
-  // [Codex] Only server snippets may contain marks; filenames are always text.
+  // Only server snippets may contain marks; filenames are always text.
   // Preserve escaped entities from the backend, but never attributes or other tags.
   if (allowMarks && /<mark[\s>]/i.test(text)) {
     return String(text).split(/(<\/?mark\b[^>]*>)/gi).map(part => {

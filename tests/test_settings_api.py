@@ -1,4 +1,4 @@
-"""[Codex] Credential settings preserve config and never expose secret values."""
+"""Credential settings preserve config and never expose secret values."""
 import tests
 import asyncio
 import os
@@ -14,7 +14,7 @@ from tests.test_launcher_api import asgi_request
 
 
 class PrivatePermissionsMixin:
-    """[Codex] POSIX stat modes are not an NTFS ACL representation."""
+    """POSIX stat modes are not an NTFS ACL representation."""
     def track_private_permissions(self):
         patcher = patch.object(server.os, "chmod", wraps=os.chmod)
         self.permission_calls = patcher.start()
@@ -319,7 +319,7 @@ class DirectorySettingsTests(PrivatePermissionsMixin, unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.config_path = Path(self.directory.name) / 'config.json'
-        # [Codex] Directory discovery intentionally prunes missing roots; keep
+        # Directory discovery intentionally prunes missing roots; keep
         # this fixture independent of the real or disposable HOME Desktop.
         self.course_root = Path(self.directory.name) / 'courses'
         self.course_root.mkdir()

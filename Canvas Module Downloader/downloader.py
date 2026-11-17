@@ -1,5 +1,5 @@
 # downloader.py
-# [Codex] HTTPS downloader with in-memory scoped cookies and atomic publication.
+# HTTPS downloader with in-memory scoped cookies and atomic publication.
 # Reads the module map; never persists authentication in course folders.
 
 import os
@@ -13,7 +13,7 @@ from capturer import sanitize_filename
 
 
 class BrowserCookieSession(requests.Session):
-    """[Codex] Apply host-only scope to the jar actually preparing each request."""
+    """Apply host-only scope to the jar actually preparing each request."""
 
     def prepare_request(self, request):
         from http.cookiejar import DefaultCookiePolicy
@@ -26,7 +26,7 @@ class BrowserCookieSession(requests.Session):
 
 
 def create_session(cookies_path=None, cookies=None):
-    """[Codex] Preserve browser cookie security; persistent cookie exports are unsupported."""
+    """Preserve browser cookie security; persistent cookie exports are unsupported."""
     if cookies_path is not None:
         raise ValueError("Cookie files are no longer accepted; authenticate through the launcher")
     session = BrowserCookieSession()
@@ -65,7 +65,7 @@ def _https_response(session, url):
 
 
 def download_file(session, url, title, temp_dir):
-    """[Codex] Atomic bounded downloads; stable URL identity prevents basename collisions."""
+    """Atomic bounded downloads; stable URL identity prevents basename collisions."""
     import hashlib
     import tempfile
     from safety import contained_path, unique_destination

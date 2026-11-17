@@ -1,4 +1,4 @@
-"""[Codex] Local macOS/Windows OCR. Never downloads models or modifies PDFs."""
+"""Local macOS/Windows OCR. Never downloads models or modifies PDFs."""
 import hashlib
 import json
 import os

@@ -105,7 +105,7 @@ def manage_rules(config: dict) -> dict:
             if folder_name:
                 kws_str = input(f"Enter keywords for '{folder_name}' (comma-separated): ").strip()
                 kws = [k.strip().lower() for k in kws_str.split(",") if k.strip()]
-                # [Codex] User-added mappings are authoritative; shipped generic
+                # User-added mappings are authoritative; shipped generic
                 # keyword lists remain hints behind specific document evidence.
                 config.setdefault("category_rules", []).insert(0, {"folder": folder_name, "keywords": kws, "override": True})
                 save_config(config)
@@ -201,7 +201,7 @@ def run_full_scrape(course_url: str, output_dir: str, course_name: str, selected
 
 
 def is_generated_reclassification_report(filename: str, course_name: str) -> bool:
-    """[Codex] Identify only known generated reports, including collision copies.
+    """Identify only known generated reports, including collision copies.
 
     Announcement exports and instructor documents remain eligible. Existing
     reports are left at their paths; they are never staged as new course input.
@@ -214,7 +214,7 @@ def is_generated_reclassification_report(filename: str, course_name: str) -> boo
 
 
 def existing_archive_output(directory):
-    """[Codex] Resolve maintenance targets without creating a new archive."""
+    """Resolve maintenance targets without creating a new archive."""
     target = os.path.realpath(os.path.expanduser(str(directory)))
     if not os.path.isdir(target):
         raise ValueError("Existing course directory is missing")
@@ -227,7 +227,7 @@ def run_local_reclassify(output_dir: str, course_name: str):
     import shutil
     from organizer import organize
 
-    # [Codex] Stage copies; originals survive cancellation/provider failure.
+    # Stage copies; originals survive cancellation/provider failure.
     course_root = resolve_course_root(output_dir, course_name)
     validate_tree(course_root)
     if not any(os.path.isfile(contained_path(folder, "canvas_course.json")) for folder in (course_root, output_dir)):
@@ -257,7 +257,7 @@ def run_local_reclassify(output_dir: str, course_name: str):
     # Retain originals in a recovery directory, including files filtered by the organizer.
     backup = contained_path(course_root, ".reclassification-backup")
     os.makedirs(backup, mode=0o700, exist_ok=True)
-    # [Codex] Each completed run retains its own immutable recovery namespace.
+    # Each completed run retains its own immutable recovery namespace.
     import tempfile
     backup = tempfile.mkdtemp(prefix="run-", dir=backup)
     recovery = {}

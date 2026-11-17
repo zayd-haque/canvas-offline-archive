@@ -1,4 +1,4 @@
-"""[Codex] Published tags must match both platform package identities."""
+"""Published tags must match both platform package identities."""
 import tests
 import json
 import tempfile

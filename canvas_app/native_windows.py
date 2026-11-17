@@ -1,4 +1,4 @@
-"""[Codex] Windows-only native file actions and folder picker."""
+"""Windows-only native file actions and folder picker."""
 
 from __future__ import annotations
 

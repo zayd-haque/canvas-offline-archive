@@ -1,4 +1,4 @@
-"""[Codex] Bounded offline extraction. PDF parsing runs in a disposable child process."""
+"""Bounded offline extraction. PDF parsing runs in a disposable child process."""
 import json
 import re
 import subprocess

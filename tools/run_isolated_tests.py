@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""[Codex] Run fixtures against source export, never local config or user archives."""
+"""Run fixtures against source export, never local config or user archives."""
 import argparse
 import io
 import os

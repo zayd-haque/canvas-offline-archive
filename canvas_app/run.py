@@ -53,7 +53,7 @@ def main():
     except Exception as e:
         print(f"Notice: Asset bundling skipped: {e}")
 
-    # [Codex] Own the port before opening a browser; an existing service must
+    # Own the port before opening a browser; an existing service must
     # never receive this launch's bootstrap attempt.
     import server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:

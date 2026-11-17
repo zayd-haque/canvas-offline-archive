@@ -1,4 +1,4 @@
-"""[Codex] Composed evidence, descriptor semantics and weak empty identities."""
+"""Composed evidence, descriptor semantics and weak empty identities."""
 import tests
 import itertools
 import unittest

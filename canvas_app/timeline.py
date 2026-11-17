@@ -1,4 +1,4 @@
-"""[Codex] Timezone-aware timeline projection, keeping archived records unchanged."""
+"""Timezone-aware timeline projection, keeping archived records unchanged."""
 import re
 from datetime import datetime, timezone
 

@@ -1,4 +1,4 @@
-"""[Codex] Own and reap pipeline process groups, including cancellation races."""
+"""Own and reap pipeline process groups, including cancellation races."""
 import asyncio
 import os
 import signal

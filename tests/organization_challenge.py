@@ -1,4 +1,4 @@
-"""[Codex] Fresh synthetic challenge authored after first benchmark tuning.
+"""Fresh synthetic challenge authored after first benchmark tuning.
 
 Labels are frozen before first evaluation. This is an independent agent's
 fixture coverage, not a real-data estimate or a Gemini reference corpus.

@@ -232,7 +232,7 @@ class CourseBlueprint:
             course_url=data.get("course_url", ""),
             output_dir=os.path.dirname(filepath)
         )
-        # [Codex] Retain explicit academic term for historical exam organization.
+        # Retain explicit academic term for historical exam organization.
         if isinstance(data.get("term"), str):
             bp.term = data["term"]
         bp.scraped_at = data.get("scraped_at", bp.scraped_at)
@@ -256,7 +256,7 @@ class CourseBlueprint:
         """Scans all organized files in the course directory and registers their relative paths."""
         ignore_files = {".ds_store", "canvas_course.json", ".session_cookies.json", ".modules_map.json",
                         ".modules_tree.json", ".file_metadata.json", ".announcements.json"}
-        # [Codex] Preserve aliases only for live visible contained files. Never
+        # Preserve aliases only for live visible contained files. Never
         # index recovery copies, staging data, or symbolic links.
         base = Path(course_root).resolve()
         def visible_file(relative):
@@ -1287,7 +1287,7 @@ class CourseBlueprint:
         return "\n".join(lines) + "\n"
 
     def save(self, target_dir: str, *, course_root=None):
-        """[Codex] Publish only within a caller-supplied trusted course root.
+        """Publish only within a caller-supplied trusted course root.
 
         Without an explicit root the target itself is the boundary. Blueprint
         metadata and the target's parent never grant permission to write elsewhere.
@@ -1346,7 +1346,7 @@ class CourseBlueprint:
 
 
 def _open_blueprint_directory(root, directory):
-    """[Codex] Open all directory components without following symlinks."""
+    """Open all directory components without following symlinks."""
     root = Path(contained_path(root))
     relative = Path(directory).relative_to(root)
     fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
@@ -1695,7 +1695,7 @@ def synthesize_course_blueprint(
                 break
         destinations.append(path_obj / f"{bp.course_name} Assignments_and_Milestones_Timeline.md")
         if os.name == 'nt':
-            # [Codex] Synthesis uses the same validated Windows writer as capture.
+            # Synthesis uses the same validated Windows writer as capture.
             # Preflight every destination before writing any generated file.
             for destination in destinations:
                 contained_path(path_obj, destination.relative_to(path_obj))

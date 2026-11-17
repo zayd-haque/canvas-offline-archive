@@ -1,4 +1,4 @@
-"""[Codex] Shared containment and atomic publication for downloader mutations."""
+"""Shared containment and atomic publication for downloader mutations."""
 import json
 import os
 from pathlib import Path
@@ -9,7 +9,7 @@ import stat
 
 
 def atomic_generated_text(path, content):
-    """[Codex] Preserve prior generated/user text before durable atomic replacement."""
+    """Preserve prior generated/user text before durable atomic replacement."""
     path = Path(contained_path(Path(path).parent, Path(path).name))
     previous = None
     backup = None
@@ -181,7 +181,7 @@ def course_output(base, course_name, subfolder):
 
 
 def bounded_pdf_text(path, max_pages=20, max_chars=8000):
-    """[Codex] Isolate hostile PDF decompression/parser work with CPU/RAM/time limits."""
+    """Isolate hostile PDF decompression/parser work with CPU/RAM/time limits."""
     import subprocess
     import sys
     worker = '''

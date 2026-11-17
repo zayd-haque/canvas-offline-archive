@@ -1,4 +1,4 @@
-// [Codex] Optional first-run tour. Completion is local to this browser profile.
+// Optional first-run tour. Completion is local to this browser profile.
 const ONBOARDING_KEY = "canvas_offline_onboarding_v1";
 const ONBOARDING_STEPS = [
   {

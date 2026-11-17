@@ -1,4 +1,4 @@
-"""[Codex] Legacy synthesis dispatches portable, contained atomic writes."""
+"""Legacy synthesis dispatches portable, contained atomic writes."""
 import tests
 import os
 import tempfile

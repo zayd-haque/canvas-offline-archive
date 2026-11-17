@@ -19,7 +19,7 @@ function renderCanvasView() {
   }
 }
 
-// [Codex] Coalesce typing updates for large module inventories.
+// Coalesce typing updates for large module inventories.
 let moduleSearchTimer = null;
 
 // Render Modules Accordion View

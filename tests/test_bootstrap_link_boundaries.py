@@ -1,4 +1,4 @@
-"""[Codex] Bootstrap link boundaries using disposable synthetic directories."""
+"""Bootstrap link boundaries using disposable synthetic directories."""
 
 import contextlib
 import io

@@ -1,4 +1,4 @@
-# [Codex] First-run Windows setup without a separately installed Python.
+# First-run Windows setup without a separately installed Python.
 # This script is shipped with the app; downloaded archives are checksum-pinned.
 $ErrorActionPreference = 'Stop'
 $launchArguments = @($args)

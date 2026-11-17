@@ -74,7 +74,7 @@ with tempfile.TemporaryDirectory(prefix='canvas-upgrade-') as temporary:
                 assert any(c['name']=='Synthetic Course' for c in courses),(courses,log.read_text(encoding='utf-8',errors='replace'))
                 print(label+'_STARTUP_AND_COURSE_ACCESS_PASS')
             finally:
-                # [Codex] Windows venv python can be a redirector with a child
+                # Windows venv python can be a redirector with a child
                 # interpreter holding SQLite files. Own and stop the whole tree.
                 original_error = sys.exc_info()[1]
                 try:

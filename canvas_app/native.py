@@ -1,4 +1,4 @@
-"""[Codex] Small OS boundary for local file actions and folder selection."""
+"""Small OS boundary for local file actions and folder selection."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-# [Codex] User data and generated files never enter this repository.
+# User data and generated files never enter this repository.
 .venv/
 __pycache__/
 *.py[cod]
@@ -23,7 +23,7 @@ dist/
 .secrets/
 .canvas_credentials.json
 
-# [Codex] App-private interpreter and runtime setup staging.
+# App-private interpreter and runtime setup staging.
 .python/
 .python-download.*/
 .python-install.lock

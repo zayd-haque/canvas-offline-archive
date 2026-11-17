@@ -284,7 +284,7 @@ def download_single_submission(page, assign_item: dict, work_dir: str) -> list:
                 out_filename = f"{assign_title}_Submission.pdf"
                 out_path = unique_destination(contained_path(work_dir, sanitize_filename(out_filename)))
                 try:
-                    # [Codex] Stream with the same HTTPS, cookie-scope, size and
+                    # Stream with the same HTTPS, cookie-scope, size and
                     # atomic publication rules as regular course downloads.
                     from downloader import create_session, download_file
                     with create_session(cookies=page.context.cookies()) as session:

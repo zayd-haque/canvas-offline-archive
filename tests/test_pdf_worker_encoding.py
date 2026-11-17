@@ -1,4 +1,4 @@
-"""[Codex] PDF worker text survives Windows legacy parent encoding."""
+"""PDF worker text survives Windows legacy parent encoding."""
 import tests
 import importlib.util
 import os

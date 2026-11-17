@@ -1,4 +1,4 @@
-// [Codex] Keep the launcher alive while any authenticated app tab is open.
+// Keep the launcher alive while any authenticated app tab is open.
 (async function () {
   if (!await window.canvasSessionReady) return;
   const tabId = Array.from(crypto.getRandomValues(new Uint8Array(16)),

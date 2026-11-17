@@ -1,4 +1,4 @@
-"""[Codex] General purpose and hierarchy boundaries from independent broad tests."""
+"""General purpose and hierarchy boundaries from independent broad tests."""
 import tests
 import itertools
 import unittest

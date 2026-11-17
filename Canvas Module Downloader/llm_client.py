@@ -13,7 +13,7 @@ _session = requests.Session()
 
 
 def get_gemini_api_key(config: dict = None) -> str:
-    """[Antigravity] Securely retrieves Gemini API key with strict isolation.
+    """Securely retrieves Gemini API key with strict isolation.
     Priority order:
     1. Environment variable GEMINI_API_KEY
     2. Self-contained private credentials file inside app root (.secrets/credentials.json)
@@ -53,7 +53,7 @@ def get_gemini_api_key(config: dict = None) -> str:
     return ""
 
 
-# [Codex] Every Gemini attempt shares this process-wide gate, including retries
+# Every Gemini attempt shares this process-wide gate, including retries
 # and calls from knowledge generation, classification, and folder sorting.
 _gemini_pace_lock = threading.Lock()
 _gemini_next_start = 0.0
@@ -282,7 +282,7 @@ def resolve_ollama_model(config: dict, ollama_url: str) -> str:
     configured_model = config.get("ollama_model", "").strip()
 
     if configured_model and configured_model != "auto":
-        return configured_model  # [Codex] Explicit model selection is never substituted.
+        return configured_model  # Explicit model selection is never substituted.
     else:
         # Hardware-aware auto-selection based on Mac RAM
         total_ram_gb = get_system_hardware_profile()['ram_gb']
@@ -315,7 +315,7 @@ def resolve_ollama_model(config: dict, ollama_url: str) -> str:
 
 
 def resolve_gemini_model(config: dict) -> str:
-    """[Antigravity] Resolves Gemini model according to user tier and configuration.
+    """Resolves Gemini model according to user tier and configuration.
     Defaults to gemini-3.5-flash-lite for optimal cost-efficiency and high throughput.
     Explicit model in config['gemini_model'] is preserved unless set to auto.
     """
@@ -328,7 +328,7 @@ def resolve_gemini_model(config: dict) -> str:
 
 
 class ProviderError(RuntimeError):
-    """[Codex] Selected provider failed; never switch providers implicitly."""
+    """Selected provider failed; never switch providers implicitly."""
 
 
 def query_llm(prompt: str, config: dict, timeout: int = 25, as_json: bool = False,
@@ -336,7 +336,7 @@ def query_llm(prompt: str, config: dict, timeout: int = 25, as_json: bool = Fals
               deterministic: bool = False) -> str:
     """Queries the selected provider; optional schema/sampling controls are Ollama-only.
 
-    [Codex] Classification can constrain its category response without limiting
+    Classification can constrain its category response without limiting
     the output length or sampling of knowledge generation and folder sorting.
     """
     provider = config.get("llm_provider", "gemini").lower()
@@ -372,7 +372,7 @@ def query_llm(prompt: str, config: dict, timeout: int = 25, as_json: bool = Fals
         if as_json:
             payload["generationConfig"] = {"responseMimeType": "application/json"}
 
-        # [Codex] Log bounded metadata only, never prompts, raw responses, or URLs.
+        # Log bounded metadata only, never prompts, raw responses, or URLs.
         def label(value):
             import re
             if not isinstance(value, str) or gemini_key in value:

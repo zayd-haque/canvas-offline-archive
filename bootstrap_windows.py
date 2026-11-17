@@ -1,4 +1,4 @@
-"""[Codex] Set up and start the Windows source release with a private venv."""
+"""Set up and start the Windows source release with a private venv."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def run(*args: str) -> None:
 
 
 def _write_marker(marker: Path, digest: str) -> None:
-    """[Codex] Replace the marker without following a pre-existing file link."""
+    """Replace the marker without following a pre-existing file link."""
     fd, temporary = tempfile.mkstemp(prefix=".deps-", dir=marker.parent)
     try:
         with os.fdopen(fd, "w") as output:
@@ -83,7 +83,7 @@ def main() -> int:
                     run(str(PYTHON), "-m", "pip", "install", "--require-hashes", "-r", str(lock))
                     _write_marker(marker, updated_digest)
         except (subprocess.CalledProcessError, RecoveryError):
-            # [Codex] New source must not launch with a failed dependency upgrade.
+            # New source must not launch with a failed dependency upgrade.
             raise
         except Exception as exc:
             print(f"Update check skipped: {exc}. Starting the installed version.")

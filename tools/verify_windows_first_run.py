@@ -1,4 +1,4 @@
-"""[Codex] Real Windows one-click setup using disposable data and no Python on PATH.
+"""Real Windows one-click setup using disposable data and no Python on PATH.
 
 Run on Windows after building the source checkout. Downloads only the pinned
 runtime/dependencies/Chromium; never uses Canvas, cloud AI, or personal profiles.

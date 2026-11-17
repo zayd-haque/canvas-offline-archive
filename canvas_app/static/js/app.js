@@ -515,7 +515,7 @@ async function loadCourseList({ preserveView = false } = {}) {
       els.courseSelector.appendChild(opt);
     });
 
-    // [Codex] Preserve user selection across refreshes without course-specific defaults.
+    // Preserve user selection across refreshes without course-specific defaults.
     const defaultCourse = state.courses.find(c => c.name === state.currentCourse) || state.courses[0];
     els.courseSelector.value = defaultCourse.name;
     if (typeof upgradeSelectToCustomDropdown === "function" && els.courseSelector) {
@@ -1478,7 +1478,7 @@ function renderCanvasView() {
   }
 }
 
-// [Codex] Coalesce typing updates for large module inventories.
+// Coalesce typing updates for large module inventories.
 let moduleSearchTimer = null;
 
 // Render Modules Accordion View
@@ -2612,7 +2612,7 @@ function renderGradesTab() {
 
   if (assignments.length > 0) {
     assignments.forEach(a => {
-      // [Codex] Backend owns deadline status and archived text normalization.
+      // Backend owns deadline status and archived text normalization.
       const isGs = !!a.is_gradescope;
       const dueText = a.due_display || a.due || a.due_date || "";
 
@@ -3428,7 +3428,7 @@ function renderFoldersView() {
 // 5. In-App File Preview Modal (Supports PDF, PPTX, Images, Assignment Prompts, Markdown, etc.)
 
 // --- Module: 10_preview.js ---
-// [Codex] Ignore late document responses after navigation, close, or course changes.
+// Ignore late document responses after navigation, close, or course changes.
 let previewGeneration = 0;
 let previewController = null;
 
@@ -3681,7 +3681,7 @@ async function systemAction(filePath, action = "open", targetCourse = null) {
 // --- Settings & Preferences Management ---
 
 // --- Module: 11_settings.js ---
-// [Codex] Shared comparative guidance; development evidence is not a course accuracy guarantee.
+// Shared comparative guidance; development evidence is not a course accuracy guarantee.
 function organizationMethodDescription(provider) {
   const descriptions = {
     gemini: "Cloud AI for unfamiliar wording and custom folders. Most consistent in our synthetic tests; review folder choices.",
@@ -3918,7 +3918,7 @@ function saveSettingsFromUI() {
   closeSettingsModal();
 }
 
-// [Codex] Persist non-secret preferences; credential updates use a dedicated API.
+// Persist non-secret preferences; credential updates use a dedicated API.
 let settingsReturnFocus = null;
 let settingsRequestGeneration = 0;
 let settingsKeySaving = false;
@@ -5641,7 +5641,7 @@ function initExtendedSettings() {
     e.target.textContent = input.type === "password" ? "Show" : "Hide";
     e.target.setAttribute("aria-pressed", String(input.type === "text"));
   });
-  // [Codex] Connect the explicit credential save action to its guarded writer.
+  // Connect the explicit credential save action to its guarded writer.
   document.getElementById("settings-key-save").addEventListener("click", saveGeminiKey);
   const btnIdxRefresh = document.getElementById("settings-index-refresh");
   if (btnIdxRefresh) btnIdxRefresh.addEventListener("click", () => refreshSettingsIndex());
@@ -5967,7 +5967,7 @@ async function refreshSettingsIndex(rebuild = false) {
   const generation = ++settingsIndexGeneration;
   const status = document.getElementById("settings-index-status");
   const button = document.getElementById("settings-index-rebuild");
-  // [Codex] Current settings layouts may expose indexing only in the header.
+  // Current settings layouts may expose indexing only in the header.
   if (!status || !button) return;
   button.disabled = !course || rebuild;
   if (!course) { status.textContent = "Select a course to view or rebuild its search index."; return; }
@@ -6007,7 +6007,7 @@ function handleFileClick(fileName, filePath, fileList = null, fileIndex = -1) {
   }
 }
 
-// [Codex] Archived URL metadata must never become executable navigation.
+// Archived URL metadata must never become executable navigation.
 function safeExternalUrl(value) {
   if (typeof value !== "string" || /[\u0000-\u0020\u007f]/.test(value)) return "#";
   try {
@@ -6057,7 +6057,7 @@ function escapeRegExp(string) {
 function highlightQueryInText(text, query, allowMarks = false) {
   if (!text) return "";
   if (!query) return escapeHtml(text);
-  // [Codex] Only server snippets may contain marks; filenames are always text.
+  // Only server snippets may contain marks; filenames are always text.
   // Preserve escaped entities from the backend, but never attributes or other tags.
   if (allowMarks && /<mark[\s>]/i.test(text)) {
     return String(text).split(/(<\/?mark\b[^>]*>)/gi).map(part => {
@@ -7620,7 +7620,7 @@ function renderSearchResultsView(overrideQuery = null) {
 
 // --- Module: 13_init.js ---
 document.addEventListener("DOMContentLoaded", async () => {
-  // [Codex] Never initialize data requests or actions without a local session.
+  // Never initialize data requests or actions without a local session.
   if (!await window.canvasSessionReady) {
     showLocalSessionRequired();
     return;
@@ -7633,7 +7633,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     initAllCustomDropdowns();
   }
   initOnboarding();
-  // [Codex] Delegation supports rerendered buttons without inline script handlers.
+  // Delegation supports rerendered buttons without inline script handlers.
   document.addEventListener("click", event => {
     const button = event.target.closest("[data-open-settings]");
     if (!button) return;
@@ -9158,7 +9158,7 @@ async function cancelIngestion() {
   renderLauncherView();
 }
 
-// [Codex] Shared transport keeps credentials out of jobs and never invents success.
+// Shared transport keeps credentials out of jobs and never invents success.
 async function startArchiveJob(jobState, payload) {
   if (jobState.aiProvider === "gemini" && (jobState.geminiApiKey || "").trim()) {
     const saved = await fetch("/api/settings/gemini-key", {
@@ -10206,7 +10206,7 @@ async function cancelRescan() {
 }
 
 // --- Module: 16_onboarding.js ---
-// [Codex] Optional first-run tour. Completion is local to this browser profile.
+// Optional first-run tour. Completion is local to this browser profile.
 const ONBOARDING_KEY = "canvas_offline_onboarding_v1";
 const ONBOARDING_STEPS = [
   {
@@ -10351,7 +10351,7 @@ function initOnboarding() {
 }
 
 // --- Module: 17_browser_lifecycle.js ---
-// [Codex] Keep the launcher alive while any authenticated app tab is open.
+// Keep the launcher alive while any authenticated app tab is open.
 (async function () {
   if (!await window.canvasSessionReady) return;
   const tabId = Array.from(crypto.getRandomValues(new Uint8Array(16)),

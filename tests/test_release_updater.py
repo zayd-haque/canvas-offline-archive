@@ -1,4 +1,4 @@
-"""[Codex] Synthetic checks for the shared release installer."""
+"""Synthetic checks for the shared release installer."""
 
 import tests
 

@@ -1,7 +1,7 @@
 #!/bin/bash
-# [Codex] Double-click launcher for macOS Finder. Terminal shows setup progress.
+# Double-click launcher for macOS Finder. Terminal shows setup progress.
 cd "$(dirname "$0")" || exit 1
-# [Codex] Release downloads keep implementation files out of the launch folder.
+# Release downloads keep implementation files out of the launch folder.
 # Source checkouts and older installs retain the original layout.
 if [ -d "App Files" ]; then
   if [ -L "App Files" ]; then

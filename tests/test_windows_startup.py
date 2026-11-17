@@ -1,4 +1,4 @@
-"""[Codex] Windows folder layout, upgrade preservation, and native shell syntax."""
+"""Windows folder layout, upgrade preservation, and native shell syntax."""
 import tests
 import json
 import os

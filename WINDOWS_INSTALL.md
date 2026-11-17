@@ -1,4 +1,4 @@
-# Canvas Offline Archive: Windows installation [Codex]
+# Canvas Offline Archive: Windows installation
 
 This source release runs locally on Windows 10 or 11. Previously captured courses can be viewed offline; new Canvas captures need your authorized login and an internet connection.
 
@@ -26,7 +26,7 @@ Automatic downloads require a tagged release on `zayd-haque/canvas-offline-archi
 
 The local browser session is created by the launcher. A bookmarked `127.0.0.1:8000` URL will not create a new session after restart. Keep course archives, browser profiles, API keys, and caches private; none are included in the release ZIP.
 
-## First-run troubleshooting [Codex]
+## First-run troubleshooting
 
 - If the Python download fails, check your connection and double-click the launcher again. A failed or unverified runtime is not installed.
 - If another setup is running, let that window finish. An interrupted runtime download can retry on the next launch without manually removing a lock.
